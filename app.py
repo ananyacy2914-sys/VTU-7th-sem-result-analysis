@@ -1,10 +1,10 @@
+import os
 from flask import Flask, render_template, request, jsonify
 from bs4 import BeautifulSoup
 from pymongo import MongoClient
 from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import time
@@ -13,7 +13,9 @@ app = Flask(__name__)
 app.secret_key = 'vtu_final_secret'
 
 # --- DATABASE ---
-client = MongoClient('mongodb://127.0.0.1:27017/')
+# Use an Environment Variable for DB URL if available (for production), else localhost
+MONGO_URI = os.environ.get('MONGO_URI', 'mongodb://127.0.0.1:27017/')
+client = MongoClient(MONGO_URI)
 db = client['university_db']
 students_col = db['students']
 
@@ -24,10 +26,17 @@ def init_driver():
     global driver
     if driver is None:
         chrome_options = Options()
-        chrome_options.add_argument("--headless") 
+        chrome_options.add_argument("--headless")
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
-        chrome_options.add_argument("--ignore-certificate-errors")
+        chrome_options.add_argument("--disable-gpu")
+        
+        # --- SMART DRIVER SETUP ---
+        # If we are on Render/Linux (Docker), use the specific Chrome path.
+        # If we are on Mac (Local), let Selenium find it automatically.
+        if os.path.exists("/usr/bin/google-chrome"):
+            chrome_options.binary_location = "/usr/bin/google-chrome"
+
         driver = webdriver.Chrome(options=chrome_options)
 
 @app.route('/')
@@ -50,16 +59,20 @@ def get_captcha():
         return captcha_img.screenshot_as_png, 200, {'Content-Type': 'image/jpeg'}
     except Exception as e:
         print(f"Browser Error: {e}")
+        # Reset driver if it crashes
+        if driver:
+            try: driver.quit()
+            except: pass
+            driver = None
         return "Browser Error", 500
 
-# --- NEW: LEADERBOARD API ---
+# --- LEADERBOARD API ---
 @app.route('/leaderboard')
 def get_leaderboard():
     try:
-        # Fetch all students, sort by total_marks DESC, limit to top 100
+        # Sort by Total Marks (Descending) -> Limit 100
         top_students = list(students_col.find({}, {'_id': 0, 'usn': 1, 'name': 1, 'total_marks': 1, 'sgpa': 1}).sort('total_marks', -1).limit(100))
         
-        # Add rank index manually since Mongo doesn't give row numbers
         for index, student in enumerate(top_students):
             student['rank'] = index + 1
             
@@ -74,7 +87,10 @@ def fetch_result():
 
     try:
         if not driver:
-            return jsonify({'status': 'error', 'message': 'Session expired. Refresh page.'})
+            # Try to re-init if session was lost
+            init_driver()
+            if not driver:
+                return jsonify({'status': 'error', 'message': 'Session expired. Refresh page.'})
 
         driver.find_element(By.NAME, "lns").clear()
         driver.find_element(By.NAME, "lns").send_keys(usn)
@@ -106,8 +122,10 @@ def fetch_result():
         if student_data['name'] != "Unknown":
             students_col.update_one({'usn': usn}, {'$set': student_data}, upsert=True)
             
+            # --- RANK LOGIC (BY TOTAL MARKS) ---
             my_total = student_data.get('total_marks', 0)
             uni_rank = students_col.count_documents({'total_marks': {'$gt': my_total}}) + 1
+            
             coll_code = usn[:3]
             coll_rank = students_col.count_documents({
                 'total_marks': {'$gt': my_total},
@@ -127,7 +145,7 @@ def fetch_result():
             return jsonify({'status': 'error', 'message': 'Parsing Failed'})
 
     except Exception as e:
-        print(e)
+        print(f"Error: {e}")
         return jsonify({'status': 'error', 'message': 'Server Error'})
 
 def get_credits_2022_cs_5th(sub_code):
@@ -210,4 +228,6 @@ def parse_result_page(soup, usn):
     return data
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5001)
+    # Use environment variable for port (Render uses $PORT)
+    port = int(os.environ.get('PORT', 5001))
+    app.run(host='0.0.0.0', port=port, debug=True)

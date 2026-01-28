@@ -14,7 +14,6 @@ from selenium.common.exceptions import UnexpectedAlertPresentException, NoAlertP
 
 # --- 1. CLEANUP ---
 try:
-    # Kills old driver processes to prevent memory leaks on Render
     subprocess.run(["pkill", "-f", "chromedriver"], check=False)
 except: pass
 
@@ -29,7 +28,6 @@ students_col = None
 def connect_db():
     global db, students_col
     try:
-        # 5-second timeout prevents the app from hanging if the connection is slow
         client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
         client.admin.command('ping') 
         db = client['university_db']
@@ -40,7 +38,6 @@ def connect_db():
         print(f"❌ DATABASE CONNECTION FAILED: {e}")
         return False
 
-# Initial connection attempt
 connect_db()
 
 # --- 3. BROWSER INITIALIZATION ---
@@ -55,10 +52,12 @@ def init_driver():
         chrome_options.add_argument("--disable-dev-shm-usage")
         chrome_options.add_argument("--window-size=1920,1080")
         
-        # --- CRITICAL FIX: Allow Popups for Result Window ---
+        # --- CRITICAL FIX: Force Allow Popups via Prefs ---
+        # This tells Chrome explicitly "Allow popups from all sites"
+        prefs = {"profile.default_content_setting_values.popups": 1}
+        chrome_options.add_experimental_option("prefs", prefs)
         chrome_options.add_argument("--disable-popup-blocking")
         
-        # Ensures Selenium finds the Chromium binary on Render's Linux environment
         if os.environ.get('CHROME_BIN'):
             chrome_options.binary_location = os.environ.get('CHROME_BIN')
             
@@ -66,7 +65,7 @@ def init_driver():
         chrome_options.add_argument(f"--user-data-dir={user_data_dir}")
         
         driver = webdriver.Chrome(options=chrome_options)
-        print("✅ Browser Initialized with Popups Allowed")
+        print("✅ Browser Initialized with Popups Forced Allowed")
 
 # --- 4. ROUTES ---
 
@@ -103,38 +102,35 @@ def fetch_result():
         driver.find_element(By.NAME, "captchacode").clear()
         driver.find_element(By.NAME, "captchacode").send_keys(captcha_text)
         
-        # 2. Click Submit
+        # --- FIX 2: Hard Click via JavaScript ---
+        # This bypasses any overlay that might block a normal click
         submit_btn = driver.find_element(By.XPATH, "//input[@type='submit']")
-        submit_btn.click()
+        driver.execute_script("arguments[0].click();", submit_btn)
         
-        # 3. CRITICAL: Check for "Invalid Captcha" Alert immediately
+        # 2. Check for "Invalid Captcha" Alert
         try:
-            # Wait up to 3 seconds for an alert to appear
             WebDriverWait(driver, 3).until(EC.alert_is_present())
             alert = driver.switch_to.alert
             alert_text = alert.text
-            print(f"⚠️ Alert Detected: {alert_text}")
-            alert.accept() # Close the popup so the browser isn't stuck
+            alert.accept()
             return jsonify({'status': 'error', 'message': f"VTU Says: {alert_text}"})
         except:
-            # If no alert appeared, it means the captcha was likely correct!
             pass
 
-        # 4. Handle Result Window (The popup with marks)
-        # Wait up to 20 seconds for the new window to open (Increased from 10s)
+        # 3. Handle Result Window (Wait for popup)
         try:
+            # Wait up to 20 seconds for the new window to appear
             WebDriverWait(driver, 20).until(lambda d: len(d.window_handles) > 1)
             driver.switch_to.window(driver.window_handles[-1])
         except:
-            # If no new window appeared and no alert, something else is wrong
             print(f"DEBUG: Popup failed. Current URL: {driver.current_url}")
             return jsonify({'status': 'error', 'message': 'Result window did not open. Please try again.'})
 
-        # 5. Parse Content
+        # 4. Parse Content
         soup = BeautifulSoup(driver.page_source, 'html.parser')
         student_data = parse_result_page(soup, usn)
         
-        # 6. Close Result Window & Return to Main
+        # 5. Close Result Window & Return
         if len(driver.window_handles) > 1:
             driver.close()
             driver.switch_to.window(driver.window_handles[0])
@@ -146,7 +142,6 @@ def fetch_result():
             return jsonify({'status': 'error', 'message': 'Parsed name is Unknown. Result format might have changed.'})
 
     except UnexpectedAlertPresentException:
-        # Failsafe: If an alert pops up unexpectedly at any other time
         try:
             alert = driver.switch_to.alert
             alert.accept()
@@ -154,8 +149,6 @@ def fetch_result():
         return jsonify({'status': 'error', 'message': 'Invalid Captcha or Session Timeout'})
             
     except Exception as e:
-        print(f"❌ Error: {e}")
-        # If the driver is broken/stuck, kill it so the next request works
         if driver:
             try: driver.quit()
             except: pass
@@ -166,7 +159,6 @@ def fetch_result():
 def leaderboard():
     global students_col
     if students_col is None: connect_db()
-    # Fetch and sort by marks
     try:
         students = list(students_col.find({}, {'_id': 0}).sort('total_marks', -1).limit(100))
         for i, s in enumerate(students):
@@ -175,8 +167,7 @@ def leaderboard():
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)})
 
-# --- 5. PARSING HELPER & LOGIC ---
-
+# --- 5. PARSING HELPER ---
 def get_credits_2022_cs_5th(sub_code):
     code = sub_code.upper().strip()
     if "BCS501" in code: return 3  

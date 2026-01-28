@@ -122,17 +122,62 @@ def fetch_result():
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)})
 
-@app.route('/leaderboard')
-def leaderboard():
-    global students_col
+@app.route('/fetch_result', methods=['POST'])
+def fetch_result():
+    global students_col, driver
     if students_col is None: connect_db()
     
-    # Retrieves all students, sorts by marks descending, and limits to top 100
-    students = list(students_col.find({}, {'_id': 0}).sort('total_marks', -1).limit(100))
-    for i, s in enumerate(students):
-        s['rank'] = i + 1
-    return jsonify({"status": "success", "data": students})
+    usn = request.form.get('usn', '').strip().upper()
+    captcha_text = request.form.get('captcha', '').strip()
 
+    try:
+        if driver is None: init_driver()
+        
+        # 1. Clear and Enter Details
+        driver.find_element(By.NAME, "lns").clear()
+        driver.find_element(By.NAME, "lns").send_keys(usn)
+        driver.find_element(By.NAME, "captchacode").clear()
+        driver.find_element(By.NAME, "captchacode").send_keys(captcha_text)
+        
+        # 2. Click Submit
+        driver.find_element(By.XPATH, "//input[@type='submit']").click()
+        
+        # --- CRITICAL ALERT HANDLING ---
+        time.sleep(1) # Wait for potential popup
+        try:
+            alert = driver.switch_to.alert
+            alert_text = alert.text
+            alert.accept() # Dismiss the alert
+            print(f"⚠️ Website Alert: {alert_text}")
+            return jsonify({'status': 'error', 'message': f'Website says: {alert_text}'})
+        except:
+            # No alert appeared, proceed to parse
+            pass
+
+        # 3. Handle Results Window
+        if len(driver.window_handles) > 1:
+            driver.switch_to.window(driver.window_handles[-1])
+
+        soup = BeautifulSoup(driver.page_source, 'html.parser')
+        student_data = parse_result_page(soup, usn)
+        
+        if student_data['name'] != "Unknown":
+            # 4. Save to Database
+            students_col.update_one({'usn': usn}, {'$set': student_data}, upsert=True)
+            
+            # Close the result tab and return to main
+            if len(driver.window_handles) > 1:
+                driver.close()
+                driver.switch_to.window(driver.window_handles[0])
+                
+            return jsonify({'status': 'success', 'data': student_data})
+        else:
+            return jsonify({'status': 'error', 'message': 'Result not found or parsing failed.'})
+            
+    except Exception as e:
+        # If a crash happens, try to reset the driver
+        print(f"❌ Fetch Error: {e}")
+        return jsonify({'status': 'error', 'message': 'System error. Please reload captcha and try again.'})
 # --- 5. PARSING HELPER ---
 def parse_result_page(soup, usn):
     data = {"usn": usn, "name": "Unknown", "total_marks": 0, "sgpa": "0.00"}

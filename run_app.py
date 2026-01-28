@@ -67,8 +67,12 @@ def get_captcha():
             else:
                  driver.refresh()
         except:
-            if driver: try: driver.quit() 
-            except: pass
+            if driver:
+                try:
+                    driver.quit()
+                except:
+                    pass
+
             driver = None
             init_driver()
             driver.get("https://results.vtu.ac.in/D25J26Ecbcs/index.php")

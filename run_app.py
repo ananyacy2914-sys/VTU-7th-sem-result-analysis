@@ -13,6 +13,7 @@ from selenium.webdriver.support import expected_conditions as EC
 
 # --- 1. CLEANUP ---
 try:
+    # Kills old driver processes to prevent memory leaks on Render
     subprocess.run(["pkill", "-f", "chromedriver"], check=False)
 except: pass
 
@@ -27,17 +28,18 @@ students_col = None
 def connect_db():
     global db, students_col
     try:
-        # 5-second timeout ensures the app doesn't hang if Atlas is slow
+        # 5-second timeout prevents the app from hanging if the connection is slow
         client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
         client.admin.command('ping') 
         db = client['university_db']
         students_col = db['students']
-        print("✅ Database Connected")
+        print("✅ Database Connected Successfully")
         return True
     except Exception as e:
-        print(f"❌ DB Connection Error: {e}")
+        print(f"❌ DATABASE CONNECTION FAILED: {e}")
         return False
 
+# Initial connection attempt
 connect_db()
 
 # --- 3. BROWSER INITIALIZATION ---
@@ -52,6 +54,7 @@ def init_driver():
         chrome_options.add_argument("--disable-dev-shm-usage")
         chrome_options.add_argument("--window-size=1920,1080")
         
+        # Ensures Selenium finds the Chromium binary on Render's Linux environment
         if os.environ.get('CHROME_BIN'):
             chrome_options.binary_location = os.environ.get('CHROME_BIN')
             
@@ -98,7 +101,7 @@ def fetch_result():
         driver.find_element(By.XPATH, "//input[@type='submit']").click()
         time.sleep(2)
 
-        # Handle popup if it exists
+        # Switch to the result window if it opens separately
         if len(driver.window_handles) > 1:
             driver.switch_to.window(driver.window_handles[-1])
 
@@ -106,17 +109,16 @@ def fetch_result():
         student_data = parse_result_page(soup, usn)
         
         if student_data['name'] != "Unknown":
-            # SAVE TO DATABASE - This makes it visible to all users on the leaderboard
+            # SAVE TO ATLAS: This allows any student to add themselves to the leaderboard
             students_col.update_one({'usn': usn}, {'$set': student_data}, upsert=True)
             
-            # Clean up: close the result tab if it opened separately
             if len(driver.window_handles) > 1:
                 driver.close()
                 driver.switch_to.window(driver.window_handles[0])
                 
             return jsonify({'status': 'success', 'data': student_data})
         else:
-            return jsonify({'status': 'error', 'message': 'Failed to parse result. Verify USN/Captcha.'})
+            return jsonify({'status': 'error', 'message': 'Parsing Failed. Verify USN/Captcha.'})
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)})
 
@@ -124,16 +126,15 @@ def fetch_result():
 def leaderboard():
     global students_col
     if students_col is None: connect_db()
-    # Fetch, sort by marks descending, and limit to top 100
+    
+    # Retrieves all students, sorts by marks descending, and limits to top 100
     students = list(students_col.find({}, {'_id': 0}).sort('total_marks', -1).limit(100))
     for i, s in enumerate(students):
         s['rank'] = i + 1
     return jsonify({"status": "success", "data": students})
 
-# --- 5. HELPERS ---
+# --- 5. PARSING HELPER ---
 def parse_result_page(soup, usn):
-    # This must contain your logic for extracting Name and Marks
-    # Below is a basic placeholder to prevent errors
     data = {"usn": usn, "name": "Unknown", "total_marks": 0, "sgpa": "0.00"}
     try:
         all_text = list(soup.stripped_strings)
@@ -141,7 +142,7 @@ def parse_result_page(soup, usn):
             if "Student Name" in text and i+2 < len(all_text):
                 data['name'] = all_text[i+2].replace(":", "").strip()
                 break
-        # Add your mark calculation logic here
+        # Marks extraction logic would go here
     except: pass
     return data
 

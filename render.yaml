@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: vtu-result-app
+    env: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: MONGO_URI
+        sync: false
+      - key: PORT
+        value: 10000

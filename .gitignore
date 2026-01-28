@@ -1,7 +1,5 @@
 venv/
 __pycache__/
-.DS_Store
-.wdm/
 *.pyc
-instance/
 .env
+*.log

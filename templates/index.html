@@ -3,129 +3,654 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VTU Result & Leaderboard</title>
+    <title>VTU Result & Leaderboard - Check Your Scores</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body { background: #f0f2f5; font-family: 'Poppins', sans-serif; }
-        .card { border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border: none; }
-        
-        /* Nav Tabs */
-        .nav-pills .nav-link.active { background-color: #2196F3; }
-        
-        /* Stats Box Styling */
-        .stats-container { display: flex; gap: 15px; margin-bottom: 20px; }
-        .stat-box { flex: 1; padding: 20px; border-radius: 12px; text-align: center; color: white; }
-        .bg-sgpa { background: linear-gradient(135deg, #4CAF50, #2E7D32); }
-        .bg-marks { background: linear-gradient(135deg, #2196F3, #1565C0); }
-        .bg-rank { background: linear-gradient(135deg, #FF9800, #EF6C00); }
-        
-        .stat-value { font-size: 2.5rem; font-weight: bold; line-height: 1.2; }
-        .stat-label { font-size: 0.9rem; opacity: 0.9; text-transform: uppercase; letter-spacing: 1px; }
-        
-        .table thead { background: #343a40; color: white; }
-        .pass { color: #28a745; font-weight: 700; }
-        .fail { color: #dc3545; font-weight: 700; }
-        
-        /* Leaderboard Badges */
-        .rank-1 { background-color: #FFD700; color: #000; font-weight: bold; } /* Gold */
-        .rank-2 { background-color: #C0C0C0; color: #000; font-weight: bold; } /* Silver */
-        .rank-3 { background-color: #CD7F32; color: white; font-weight: bold; } /* Bronze */
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #8b5cf6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #1e293b;
+            --light: #f8fafc;
+            --gold: #fbbf24;
+            --silver: #d1d5db;
+            --bronze: #f97316;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Animated background particles */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header/Title */
+        .page-header {
+            text-align: center;
+            margin: 2rem 0 3rem;
+            animation: fadeInDown 0.8s ease;
+        }
+
+        .page-header h1 {
+            color: white;
+            font-size: 2.8rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .page-header p {
+            color: rgba(255,255,255,0.9);
+            font-size: 1.1rem;
+            font-weight: 300;
+        }
+
+        /* Tab Navigation */
+        .nav-pills {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            padding: 0.5rem;
+            border-radius: 50px;
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        .nav-pills .nav-link {
+            color: white;
+            border-radius: 50px;
+            padding: 0.8rem 2.5rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+        }
+
+        .nav-pills .nav-link:hover {
+            background: rgba(255,255,255,0.1);
+            transform: translateY(-2px);
+        }
+
+        .nav-pills .nav-link.active {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            box-shadow: 0 4px 15px rgba(99,102,241,0.4);
+        }
+
+        /* Cards */
+        .card {
+            border-radius: 20px;
+            border: none;
+            background: white;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+            transition: all 0.3s ease;
+            animation: fadeInUp 0.8s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 25px 70px rgba(0,0,0,0.2);
+        }
+
+        .card-title {
+            color: var(--dark);
+            font-weight: 700;
+            font-size: 1.5rem;
+        }
+
+        /* Form Elements */
+        .form-label {
+            color: var(--dark);
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-control {
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 0.9rem 1.2rem;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(99,102,241,0.1);
+        }
+
+        /* Captcha Section */
+        .captcha-section {
+            background: linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 100%);
+            padding: 1.5rem;
+            border-radius: 15px;
+            margin-bottom: 1.5rem;
+            border: 2px dashed var(--primary);
+        }
+
+        #captcha-img {
+            border-radius: 10px;
+            border: 3px solid white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            max-width: 100%;
+            height: auto;
+        }
+
+        .reload-captcha {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+            margin-top: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .reload-captcha:hover {
+            color: var(--primary-dark);
+            transform: scale(1.05);
+        }
+
+        /* Submit Button */
+        .btn-submit {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border: none;
+            border-radius: 12px;
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: white;
+            width: 100%;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(99,102,241,0.3);
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(99,102,241,0.4);
+        }
+
+        .btn-submit:active {
+            transform: translateY(0);
+        }
+
+        /* Stats Boxes */
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-box {
+            padding: 2rem 1.5rem;
+            border-radius: 20px;
+            text-align: center;
+            color: white;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .stat-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(255,255,255,0.2), transparent);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .stat-box:hover::before {
+            opacity: 1;
+        }
+
+        .stat-box:hover {
+            transform: translateY(-5px) scale(1.02);
+        }
+
+        .bg-sgpa {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        .bg-marks {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+        }
+
+        .bg-rank {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+
+        .stat-icon {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            opacity: 0.9;
+        }
+
+        .stat-value {
+            font-size: 3rem;
+            font-weight: 800;
+            line-height: 1;
+            margin: 0.5rem 0;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 600;
+        }
+
+        /* Table Styling */
+        .table {
+            margin-bottom: 0;
+        }
+
+        .table thead {
+            background: linear-gradient(135deg, var(--dark), #334155);
+            color: white;
+        }
+
+        .table thead th {
+            padding: 1.2rem;
+            font-weight: 600;
+            border: none;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+        }
+
+        .table tbody tr {
+            transition: all 0.2s ease;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .table tbody tr:hover {
+            background: #f9fafb;
+            transform: scale(1.01);
+        }
+
+        .table tbody td {
+            padding: 1.2rem;
+            vertical-align: middle;
+        }
+
+        .pass {
+            color: var(--success);
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .pass::before {
+            content: '✓';
+            display: inline-block;
+            background: var(--success);
+            color: white;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 20px;
+            font-size: 0.8rem;
+        }
+
+        .fail {
+            color: var(--danger);
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .fail::before {
+            content: '✗';
+            display: inline-block;
+            background: var(--danger);
+            color: white;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 20px;
+            font-size: 0.8rem;
+        }
+
+        /* Leaderboard Ranks */
+        .rank-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 700;
+        }
+
+        .rank-1 {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            color: #78350f;
+            animation: pulse 2s infinite;
+        }
+
+        .rank-1 td {
+            background: linear-gradient(135deg, #fef3c7, #fde68a) !important;
+        }
+
+        .rank-2 {
+            background: linear-gradient(135deg, #e5e7eb, #d1d5db);
+            color: #374151;
+        }
+
+        .rank-2 td {
+            background: linear-gradient(135deg, #f3f4f6, #e5e7eb) !important;
+        }
+
+        .rank-3 {
+            background: linear-gradient(135deg, #fb923c, #f97316);
+            color: white;
+        }
+
+        .rank-3 td {
+            background: linear-gradient(135deg, #fed7aa, #fdba74) !important;
+        }
+
+        .trophy-icon {
+            font-size: 1.5rem;
+        }
+
+        /* Status Messages */
+        #status-msg {
+            padding: 1rem;
+            border-radius: 10px;
+            font-weight: 600;
+            margin-top: 1rem;
+            animation: shake 0.5s ease;
+        }
+
+        .text-danger {
+            background: #fee2e2;
+            color: #dc2626;
+            border: 1px solid #fca5a5;
+        }
+
+        .text-success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #6ee7b7;
+        }
+
+        /* Loading Spinner */
+        .spinner-border-sm {
+            width: 1rem;
+            height: 1rem;
+            border-width: 0.15em;
+        }
+
+        /* Animations */
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.7);
+            }
+            50% {
+                box-shadow: 0 0 0 10px rgba(251, 191, 36, 0);
+            }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .page-header h1 {
+                font-size: 2rem;
+            }
+
+            .nav-pills .nav-link {
+                padding: 0.6rem 1.5rem;
+                font-size: 0.9rem;
+            }
+
+            .stat-value {
+                font-size: 2.5rem;
+            }
+
+            .stats-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Student Name Header */
+        #student-name {
+            color: var(--dark);
+            font-weight: 700;
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, #f0f4ff, #e0e7ff);
+            border-radius: 15px;
+            border-left: 5px solid var(--primary);
+            animation: fadeInUp 0.6s ease;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #64748b;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
     </style>
 </head>
 <body>
 
 <div class="container py-5">
     
-    <ul class="nav nav-pills justify-content-center mb-4" id="pills-tab" role="tablist">
+    <!-- Header -->
+    <div class="page-header">
+        <h1><i class="fas fa-graduation-cap"></i> VTU Result Portal</h1>
+        <p>Check your results and compete on the leaderboard</p>
+    </div>
+
+    <!-- Tab Navigation -->
+    <ul class="nav nav-pills justify-content-center mb-5" id="pills-tab" role="tablist">
         <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="pills-check-tab" data-bs-toggle="pill" data-bs-target="#pills-check" type="button">Check Result</button>
+            <button class="nav-link active" id="pills-check-tab" data-bs-toggle="pill" data-bs-target="#pills-check" type="button">
+                <i class="fas fa-clipboard-check"></i> Check Result
+            </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="pills-leaderboard-tab" data-bs-toggle="pill" data-bs-target="#pills-leaderboard" type="button" onclick="fetchLeaderboard()">View Leaderboard</button>
+            <button class="nav-link" id="pills-leaderboard-tab" data-bs-toggle="pill" data-bs-target="#pills-leaderboard" type="button" onclick="fetchLeaderboard()">
+                <i class="fas fa-trophy"></i> Leaderboard
+            </button>
         </li>
     </ul>
 
     <div class="tab-content" id="pills-tabContent">
         
+        <!-- Check Result Tab -->
         <div class="tab-pane fade show active" id="pills-check" role="tabpanel">
             <div class="row justify-content-center">
-                <div class="col-md-5 mb-4">
+                <div class="col-lg-5 col-md-6 mb-4">
                     <div class="card p-4">
-                        <h3 class="text-center fw-bold mb-4" style="color:#333;">Enter Details</h3>
+                        <h3 class="card-title text-center mb-4">
+                            <i class="fas fa-user-graduate text-primary"></i> Enter Your Details
+                        </h3>
                         
-                        <div class="text-center mb-3">
-                            <img id="captcha-img" src="" alt="Captcha" class="img-fluid border rounded" style="min-height: 60px;">
+                        <div class="captcha-section text-center">
+                            <img id="captcha-img" src="" alt="Loading captcha..." style="min-height: 60px; max-width: 100%;">
                             <br>
-                            <a href="#" onclick="loadCaptcha(); return false;" class="text-decoration-none small mt-2 d-inline-block">↻ Reload Captcha</a>
+                            <a href="#" onclick="loadCaptcha(); return false;" class="reload-captcha">
+                                <i class="fas fa-sync-alt"></i> Reload Captcha
+                            </a>
                         </div>
 
                         <form id="resultForm">
                             <div class="mb-3">
-                                <label class="form-label text-muted small">University Seat Number</label>
-                                <input type="text" name="usn" class="form-control form-control-lg" placeholder="1DB23CS..." required>
+                                <label class="form-label">
+                                    <i class="fas fa-id-card text-primary"></i> University Seat Number
+                                </label>
+                                <input type="text" 
+                                       name="usn" 
+                                       id="usn-input"
+                                       class="form-control" 
+                                       placeholder="e.g., 1DB23CS206" 
+                                       pattern="1[Dd][Bb].*"
+                                       maxlength="10"
+                                       required>
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle"></i> Only 1DB college USNs are allowed
+                                </small>
                             </div>
                             <div class="mb-4">
-                                <label class="form-label text-muted small">Captcha</label>
-                                <input type="text" name="captcha" class="form-control form-control-lg" placeholder="Enter code" required>
+                                <label class="form-label">
+                                    <i class="fas fa-shield-alt text-primary"></i> Enter Captcha Code
+                                </label>
+                                <input type="text" name="captcha" class="form-control" placeholder="Type the code above" required autocomplete="off">
                             </div>
-                            <button type="submit" class="btn btn-primary w-100 py-3 fw-bold shadow-sm">GET RESULT</button>
+                            <button type="submit" class="btn-submit">
+                                <i class="fas fa-search"></i> GET MY RESULT
+                            </button>
                         </form>
-                        <div id="status-msg" class="text-center mt-3 text-danger fw-bold"></div>
+                        <div id="status-msg"></div>
                     </div>
                 </div>
 
-                <div id="result-section" class="col-md-7" style="display:none;">
-                    <h4 class="mb-3" id="student-name"></h4>
+                <!-- Result Display -->
+                <div id="result-section" class="col-lg-7 col-md-6" style="display:none;">
+                    <div id="student-name"></div>
 
                     <div class="stats-container">
                         <div class="stat-box bg-sgpa">
+                            <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
                             <div class="stat-label">SGPA</div>
                             <div class="stat-value" id="sgpa-display">0.00</div>
                         </div>
                         <div class="stat-box bg-marks">
+                            <div class="stat-icon"><i class="fas fa-star"></i></div>
                             <div class="stat-label">Total Marks</div>
                             <div class="stat-value" id="total-marks-display">0</div>
                         </div>
                         <div class="stat-box bg-rank">
-                            <div class="stat-label">Class Rank</div>
+                            <div class="stat-icon"><i class="fas fa-medal"></i></div>
+                            <div class="stat-label">University Rank</div>
                             <div class="stat-value" id="rank-display"># -</div>
                         </div>
                     </div>
 
                     <div class="card p-4">
-                        <table class="table table-hover align-middle">
-                            <thead>
-                                <tr>
-                                    <th>Code</th>
-                                    <th>Subject</th>
-                                    <th>Total</th>
-                                    <th>Result</th>
-                                </tr>
-                            </thead>
-                            <tbody id="marks-body"></tbody>
-                        </table>
+                        <h4 class="card-title mb-4">
+                            <i class="fas fa-book text-primary"></i> Subject-wise Performance
+                        </h4>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead>
+                                    <tr>
+                                        <th><i class="fas fa-code"></i> Code</th>
+                                        <th><i class="fas fa-book-open"></i> Subject</th>
+                                        <th><i class="fas fa-calculator"></i> Marks</th>
+                                        <th><i class="fas fa-check-circle"></i> Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="marks-body"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
+        <!-- Leaderboard Tab -->
         <div class="tab-pane fade" id="pills-leaderboard" role="tabpanel">
             <div class="card p-4">
-                <h3 class="text-center mb-4">🏆 Class Leaderboard</h3>
-                <table class="table table-hover align-middle text-center">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>Rank</th>
-                            <th>USN</th>
-                            <th>Name</th>
-                            <th>Total Marks</th>
-                            <th>SGPA</th>
-                        </tr>
-                    </thead>
-                    <tbody id="leaderboard-body">
-                        <tr><td colspan="5">Loading...</td></tr>
-                    </tbody>
-                </table>
+                <h3 class="card-title text-center mb-4">
+                    <i class="fas fa-trophy text-warning"></i> Top Performers Leaderboard
+                </h3>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle text-center">
+                        <thead>
+                            <tr>
+                                <th><i class="fas fa-hashtag"></i> Rank</th>
+                                <th><i class="fas fa-id-badge"></i> USN</th>
+                                <th><i class="fas fa-user"></i> Name</th>
+                                <th><i class="fas fa-chart-bar"></i> Total Marks</th>
+                                <th><i class="fas fa-graduation-cap"></i> SGPA</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaderboard-body">
+                            <tr>
+                                <td colspan="5" class="empty-state">
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                    <p>Loading leaderboard...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -133,102 +658,178 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    function loadCaptcha() {
-        document.getElementById('captcha-img').src = "/get_captcha?" + new Date().getTime();
-    }
-    window.onload = loadCaptcha;
+    // Real-time USN validation
+    document.addEventListener('DOMContentLoaded', function() {
+        const usnInput = document.getElementById('usn-input');
+        
+        usnInput.addEventListener('input', function(e) {
+            let value = e.target.value.toUpperCase();
+            e.target.value = value;
+            
+            // Visual feedback
+            if (value.length > 0) {
+                if (value.startsWith('1DB')) {
+                    e.target.style.borderColor = '#10b981';
+                    e.target.style.backgroundColor = '#f0fdf4';
+                } else {
+                    e.target.style.borderColor = '#ef4444';
+                    e.target.style.backgroundColor = '#fef2f2';
+                }
+            } else {
+                e.target.style.borderColor = '#e2e8f0';
+                e.target.style.backgroundColor = 'white';
+            }
+        });
+    });
     
+    function loadCaptcha() {
+        const img = document.getElementById('captcha-img');
+        img.src = "/get_captcha?" + new Date().getTime();
+    }
+    
+    window.onload = loadCaptcha;
+
     // Fetch Result Logic
     document.getElementById('resultForm').addEventListener('submit', async function(e) {
         e.preventDefault();
-        const btn = document.querySelector('button');
+        
+        // Validate USN format
+        const usnInput = document.querySelector('input[name="usn"]');
+        const usn = usnInput.value.trim().toUpperCase();
+        
+        // Check if USN starts with 1DB
+        if (!usn.startsWith('1DB')) {
+            const status = document.getElementById('status-msg');
+            status.className = "text-danger";
+            status.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Invalid USN! Only 1DB college USNs are allowed (e.g., 1DB23CS001)`;
+            return;
+        }
+        
+        // Check USN length
+        if (usn.length !== 10) {
+            const status = document.getElementById('status-msg');
+            status.className = "text-danger";
+            status.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Invalid USN format! USN should be exactly 10 characters`;
+            return;
+        }
+        
+        const btn = document.querySelector('.btn-submit');
         const resultSection = document.getElementById('result-section');
         const status = document.getElementById('status-msg');
-    
+        
         btn.disabled = true;
-        btn.innerHTML = 'Fetching...';
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Fetching Your Result...';
         status.innerText = "";
+        status.className = "";
         resultSection.style.display = "none";
-    
+
         try {
             const response = await fetch('/fetch_result', { method: 'POST', body: new FormData(this) });
             const data = await response.json();
-    
+
             if (data.status === 'success') {
-                document.getElementById('student-name').innerText = "Hello, " + data.data.name;
+                document.getElementById('student-name').innerHTML = 
+                    `<i class="fas fa-user-circle"></i> ${data.data.name}`;
                 document.getElementById('sgpa-display').innerText = data.data.sgpa;
                 document.getElementById('total-marks-display').innerText = data.data.total_marks;
                 document.getElementById('rank-display').innerText = "#" + data.ranks.uni_rank;
-    
+                
                 const tbody = document.getElementById('marks-body');
                 tbody.innerHTML = "";
                 data.data.subjects.forEach(sub => {
                     tbody.innerHTML += `
-                    <tr>
-                        <td>${sub.code}</td>
-                        <td>${sub.name}</td>
-                        <td>${sub.total}</td>
-                        <td>${sub.result}</td>
-                    </tr>`;
+                        <tr>
+                            <td class="fw-bold text-secondary">${sub.code}</td>
+                            <td>${sub.name}</td>
+                            <td class="fw-bold">${sub.total}</td>
+                            <td class="${sub.result === 'P' ? 'pass' : 'fail'}">${sub.result === 'P' ? 'Pass' : 'Fail'}</td>
+                        </tr>
+                    `;
                 });
-    
                 resultSection.style.display = "block";
+                
+                // Scroll to results
+                resultSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             } else {
-                status.innerText = data.message;
+                status.className = "text-danger";
+                status.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${data.message}`;
                 loadCaptcha();
             }
-        } catch {
-            status.innerText = "Connection Error";
+        } catch (err) { 
+            status.className = "text-danger";
+            status.innerHTML = `<i class="fas fa-times-circle"></i> Connection Error. Please try again.`;
         }
-    
+        
         btn.disabled = false;
-        btn.innerHTML = "GET RESULT";
+        btn.innerHTML = '<i class="fas fa-search"></i> GET MY RESULT';
     });
-    
-    // ✅ FIXED Leaderboard Logic
+
+    // Fetch Leaderboard Logic
     async function fetchLeaderboard() {
+        const tbody = document.getElementById('leaderboard-body');
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="empty-state">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Loading leaderboard...</p>
+                </td>
+            </tr>
+        `;
+        
         try {
             const response = await fetch('/leaderboard');
             const result = await response.json();
-    
-            const tbody = document.getElementById('leaderboard-body');
+            
             tbody.innerHTML = "";
-    
-            // Handle both API formats
-            let students = [];
-    
-            if (Array.isArray(result)) {
-                students = result;                 // format: [...]
-            } else if (result.status === 'success') {
-                students = result.data;            // format: {status,data}
+            
+            if (result.status === 'success' && result.data.length > 0) {
+                result.data.forEach(student => {
+                    let rankIcon = '';
+                    let rowClass = '';
+                    
+                    if (student.rank === 1) {
+                        rankIcon = '<i class="fas fa-trophy trophy-icon" style="color: #fbbf24;"></i>';
+                        rowClass = 'rank-1';
+                    } else if (student.rank === 2) {
+                        rankIcon = '<i class="fas fa-trophy trophy-icon" style="color: #d1d5db;"></i>';
+                        rowClass = 'rank-2';
+                    } else if (student.rank === 3) {
+                        rankIcon = '<i class="fas fa-trophy trophy-icon" style="color: #fb923c;"></i>';
+                        rowClass = 'rank-3';
+                    }
+
+                    tbody.innerHTML += `
+                        <tr class="${rowClass}">
+                            <td class="fw-bold">${rankIcon} #${student.rank}</td>
+                            <td>${student.usn}</td>
+                            <td class="fw-bold">${student.name}</td>
+                            <td class="fw-bold text-primary">${student.total_marks}</td>
+                            <td class="fw-bold text-success">${student.sgpa}</td>
+                        </tr>
+                    `;
+                });
+            } else {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="empty-state">
+                            <i class="fas fa-inbox"></i>
+                            <p>No results yet. Be the first to check your result!</p>
+                        </td>
+                    </tr>
+                `;
             }
-    
-            if (students.length === 0) {
-                tbody.innerHTML = "<tr><td colspan='5'>No records found yet.</td></tr>";
-                return;
-            }
-    
-            students.forEach(student => {
-                let rowClass = "";
-                if (student.rank === 1) rowClass = "rank-1";
-                else if (student.rank === 2) rowClass = "rank-2";
-                else if (student.rank === 3) rowClass = "rank-3";
-    
-                tbody.innerHTML += `
-                <tr class="${rowClass}">
-                    <td>#${student.rank}</td>
-                    <td>${student.usn}</td>
-                    <td>${student.name}</td>
-                    <td>${student.total_marks}</td>
-                    <td>${student.sgpa || "-"}</td>
-                </tr>`;
-            });
-    
         } catch (e) {
-            console.error("Leaderboard error:", e);
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="empty-state">
+                        <i class="fas fa-exclamation-circle text-danger"></i>
+                        <p>Error loading leaderboard</p>
+                    </td>
+                </tr>
+            `;
+            console.error(e);
         }
     }
-    </script>
-    
+</script>
 </body>
 </html>

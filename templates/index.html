@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VTU Result & Leaderboard - Check Your Scores</title>
+    <title>D.B.I.T. Result & Leaderboard - Check Your Scores</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -453,6 +453,18 @@
             }
         }
 
+        .credit-footer {
+    position: fixed;
+    bottom: 10px;
+    right: 15px;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 500;
+    z-index: 9999;
+    user-select: none;
+}
+
+
         @keyframes shake {
             0%, 100% { transform: translateX(0); }
             10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
@@ -512,7 +524,7 @@
     
     <!-- Header -->
     <div class="page-header">
-        <h1><i class="fas fa-graduation-cap"></i> VTU Result Portal</h1>
+        <h1><i class="fas fa-graduation-cap"></i> D.B.I.T. Result Portal</h1>
         <p>Check your results and compete on the leaderboard</p>
     </div>
 
@@ -558,12 +570,12 @@
                                        name="usn" 
                                        id="usn-input"
                                        class="form-control" 
-                                       placeholder="e.g., 1DB23CS206" 
-                                       pattern="1[Dd][Bb].*"
+                                       placeholder="e.g., 1DB23CS001 or 1DB24CS002" 
+                                       pattern="1[Dd][Bb](23|24)[Cc][Ss].*"
                                        maxlength="10"
                                        required>
                                 <small class="text-muted">
-                                    <i class="fas fa-info-circle"></i> Only 1DB college USNs are allowed
+                                    <i class="fas fa-info-circle"></i> Only 1DB23CS and 1DB24CS USNs are allowed
                                 </small>
                             </div>
                             <div class="mb-4">
@@ -597,7 +609,7 @@
                         </div>
                         <div class="stat-box bg-rank">
                             <div class="stat-icon"><i class="fas fa-medal"></i></div>
-                            <div class="stat-label">University Rank</div>
+                            <div class="stat-label">College Rank</div>
                             <div class="stat-value" id="rank-display"># -</div>
                         </div>
                     </div>
@@ -668,7 +680,7 @@
             
             // Visual feedback
             if (value.length > 0) {
-                if (value.startsWith('1DB')) {
+                if (value.startsWith('1DB23CS') || value.startsWith('1DB24CS')) {
                     e.target.style.borderColor = '#10b981';
                     e.target.style.backgroundColor = '#f0fdf4';
                 } else {
@@ -697,11 +709,11 @@
         const usnInput = document.querySelector('input[name="usn"]');
         const usn = usnInput.value.trim().toUpperCase();
         
-        // Check if USN starts with 1DB
-        if (!usn.startsWith('1DB')) {
+        // Check if USN starts with 1DB23CS or 1DB24CS
+        if (!usn.startsWith('1DB23CS') && !usn.startsWith('1DB24CS')) {
             const status = document.getElementById('status-msg');
             status.className = "text-danger";
-            status.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Invalid USN! Only 1DB college USNs are allowed (e.g., 1DB23CS001)`;
+            status.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Invalid USN! Only 1DB23CS or 1DB24CS USNs are allowed`;
             return;
         }
         
@@ -831,5 +843,8 @@
         }
     }
 </script>
+<div class="credit-footer">
+    Made with ❤️ by Astitva & Arsalan
+</div>
 </body>
 </html>

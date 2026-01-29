@@ -217,11 +217,11 @@ def fetch_result():
     usn = request.form['usn'].strip().upper()
     captcha_text = request.form['captcha'].strip()
     
-    # Validate USN format - must start with 1DB
-    if not usn.startswith('1DB'):
+    # Validate USN format - must start with 1DB23CS or 1DB24CS
+    if not (usn.startswith('1DB23CS') or usn.startswith('1DB24CS')):
         return jsonify({
             'status': 'error', 
-            'message': 'Invalid USN! Only 1DB college USNs are allowed (e.g., 1DB23CS001)'
+            'message': 'Invalid USN! Only 1DB23CS or 1DB24CS USNs are allowed (e.g., 1DB23CS001)'
         })
     
     # Additional validation - check USN length (should be 10 characters: 1DB23CS001)

@@ -71,19 +71,52 @@ def init_driver():
     if driver is None:
         print("🔵 Initializing Invisible Browser...")
         chrome_options = Options()
-        chrome_options.add_argument("--headless=new") 
+        
+        # Headless mode
+        chrome_options.add_argument("--headless=new")
+        
+        # Required for Docker/containerized environments
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
-        chrome_options.add_argument("--window-size=1920,1080")
-        chrome_options.add_argument("--disable-popup-blocking")
         chrome_options.add_argument("--disable-gpu")
         chrome_options.add_argument("--disable-software-rasterizer")
         
+        # Window and display settings
+        chrome_options.add_argument("--window-size=1920,1080")
+        chrome_options.add_argument("--disable-popup-blocking")
+        chrome_options.add_argument("--disable-extensions")
+        chrome_options.add_argument("--disable-infobars")
+        
+        # Memory and performance optimizations for free tier
+        chrome_options.add_argument("--disable-background-networking")
+        chrome_options.add_argument("--disable-background-timer-throttling")
+        chrome_options.add_argument("--disable-backgrounding-occluded-windows")
+        chrome_options.add_argument("--disable-breakpad")
+        chrome_options.add_argument("--disable-component-extensions-with-background-pages")
+        chrome_options.add_argument("--disable-features=TranslateUI")
+        chrome_options.add_argument("--disable-ipc-flooding-protection")
+        chrome_options.add_argument("--disable-renderer-backgrounding")
+        chrome_options.add_argument("--disable-sync")
+        chrome_options.add_argument("--metrics-recording-only")
+        chrome_options.add_argument("--mute-audio")
+        
+        # Set binary location (for Chromium in container)
+        chrome_options.binary_location = "/usr/bin/chromium"
+        
+        # User data directory
         user_data_dir = tempfile.mkdtemp()
         chrome_options.add_argument(f"--user-data-dir={user_data_dir}")
         
-        driver = webdriver.Chrome(options=chrome_options)
-        print("✅ Browser Started Successfully")
+        try:
+            driver = webdriver.Chrome(options=chrome_options)
+            print("✅ Browser Started Successfully")
+        except Exception as e:
+            print(f"❌ Browser initialization failed: {e}")
+            print("🔍 Trying with default Chrome binary...")
+            # Try without specifying binary location
+            chrome_options.binary_location = None
+            driver = webdriver.Chrome(options=chrome_options)
+            print("✅ Browser Started Successfully (fallback)")
 
 @app.route('/')
 def home():
@@ -99,11 +132,11 @@ def get_captcha():
             init_driver()
             
         try:
-            if "results.vtu.ac.in" not in driver.current_url:
-                driver.get("https://results.vtu.ac.in/D25J26Ecbcs/index.php")
-            else:
-                driver.refresh()
-        except:
+            # Always load fresh page for new captcha
+            driver.get("https://results.vtu.ac.in/D25J26Ecbcs/index.php")
+            print("🔄 Loaded fresh VTU page for captcha")
+        except Exception as e:
+            print(f"⚠️ Navigation error: {e}")
             # If navigation fails, restart driver
             if driver: 
                 try: 
@@ -114,12 +147,18 @@ def get_captcha():
             init_driver()
             driver.get("https://results.vtu.ac.in/D25J26Ecbcs/index.php")
         
+        # Wait for page to fully load
         wait = WebDriverWait(driver, 15)
         captcha_img = wait.until(EC.presence_of_element_located((By.XPATH, "//img[contains(@src, 'captcha')]")))
-        driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", captcha_img)
-        time.sleep(1) 
         
-        return captcha_img.screenshot_as_png, 200, {'Content-Type': 'image/jpeg'}
+        # Wait a bit more for captcha to fully render
+        time.sleep(1.5)
+        
+        driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", captcha_img)
+        time.sleep(0.5)
+        
+        print("✅ Captcha image captured")
+        return captcha_img.screenshot_as_png, 200, {'Content-Type': 'image/png'}
         
     except Exception as e:
         print(f"❌ Captcha Error: {e}")
@@ -178,29 +217,63 @@ def fetch_result():
     usn = request.form['usn'].strip().upper()
     captcha_text = request.form['captcha'].strip()
     
+    print(f"🔍 Attempting to fetch result for USN: {usn}, Captcha: {captcha_text}")
+    
     try:
         # Initialize browser if needed
         if not driver: 
             init_driver()
         
-        # Fill in the form
-        driver.find_element(By.NAME, "lns").clear()
-        driver.find_element(By.NAME, "lns").send_keys(usn)
-        driver.find_element(By.NAME, "captchacode").clear()
-        driver.find_element(By.NAME, "captchacode").send_keys(captcha_text)
-        driver.find_element(By.XPATH, "//input[@type='submit']").click()
-        time.sleep(2)
+        # Make sure we're on the right page (same page as captcha)
+        current_url = driver.current_url
+        print(f"📍 Current URL: {current_url}")
+        
+        if "results.vtu.ac.in" not in current_url:
+            print("⚠️ Not on VTU page, reloading...")
+            driver.get("https://results.vtu.ac.in/D25J26Ecbcs/index.php")
+            time.sleep(3)
+        
+        # Wait for form elements to be present
+        wait = WebDriverWait(driver, 15)
+        
+        # Wait for USN field
+        print("🔍 Waiting for USN field...")
+        usn_field = wait.until(EC.presence_of_element_located((By.NAME, "lns")))
+        usn_field.clear()
+        time.sleep(0.5)
+        usn_field.send_keys(usn)
+        print(f"✅ Entered USN: {usn}")
+        
+        # Wait for captcha field
+        print("🔍 Waiting for captcha field...")
+        captcha_field = wait.until(EC.presence_of_element_located((By.NAME, "captchacode")))
+        captcha_field.clear()
+        time.sleep(0.5)
+        captcha_field.send_keys(captcha_text)
+        print(f"✅ Entered Captcha: {captcha_text}")
+        
+        # Wait for submit button and click
+        print("🔍 Looking for submit button...")
+        submit_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//input[@type='submit']")))
+        submit_btn.click()
+        print("✅ Form submitted, waiting for response...")
+        time.sleep(4)
 
         # Check for alerts
         try:
             alert = driver.switch_to.alert
             txt = alert.text
+            print(f"⚠️ Alert detected: {txt}")
             alert.accept()
-            if "Invalid captcha" in txt: 
-                return jsonify({'status': 'error', 'message': 'Invalid Captcha'})
-            if "not available" in txt: 
-                return jsonify({'status': 'error', 'message': 'Result Not Found'})
-        except: 
+            
+            if "Invalid captcha" in txt or "invalid" in txt.lower(): 
+                return jsonify({'status': 'error', 'message': 'Invalid Captcha - Please try reloading captcha'})
+            if "not available" in txt.lower(): 
+                return jsonify({'status': 'error', 'message': 'Result Not Found for this USN'})
+            
+            return jsonify({'status': 'error', 'message': f'{txt}'})
+        except Exception as no_alert: 
+            print("ℹ️ No alert - proceeding to parse result")
             pass
 
         # Switch to result window if new window opened

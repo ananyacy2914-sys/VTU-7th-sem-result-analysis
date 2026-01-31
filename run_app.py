@@ -227,6 +227,8 @@ def fetch_result():
         driver.execute_script("arguments[0].click();", submit_btn)
         print("✅ Form submitted")
         
+        time.sleep(2)  # Give time for alert or popup
+        
         # Handle alerts (invalid captcha, result not found)
         try:
             WebDriverWait(driver, 3).until(EC.alert_is_present())
@@ -240,15 +242,44 @@ def fetch_result():
             
             return jsonify({'status': 'error', 'message': f'VTU says: {alert_text}'})
         except:
+            print("ℹ️ No alert detected, checking for result window...")
             pass  # No alert, continue
 
-        # Handle result popup window
+        # Handle result popup window - Multiple strategies
+        result_found = False
+        
+        # Strategy 1: Wait for new window
         try:
-            print("⏳ Waiting for result window...")
-            WebDriverWait(driver, 20).until(lambda d: len(d.window_handles) > 1)
-            driver.switch_to.window(driver.window_handles[-1])
-            print("✅ Switched to result window")
-        except:
+            print("🔍 Strategy 1: Waiting for popup window...")
+            for i in range(10):  # Try for 10 seconds
+                if len(driver.window_handles) > 1:
+                    driver.switch_to.window(driver.window_handles[-1])
+                    print("✅ Switched to result window")
+                    result_found = True
+                    break
+                time.sleep(1)
+        except Exception as e:
+            print(f"⚠️ Strategy 1 failed: {e}")
+        
+        # Strategy 2: Check if result is in same window (no popup)
+        if not result_found:
+            print("🔍 Strategy 2: Checking current window for result...")
+            time.sleep(2)
+            soup_check = BeautifulSoup(driver.page_source, 'html.parser')
+            if "Student Name" in soup_check.get_text():
+                print("✅ Result found in current window")
+                result_found = True
+        
+        # Strategy 3: Force refresh and check again
+        if not result_found:
+            print("🔍 Strategy 3: Refreshing and checking...")
+            time.sleep(2)
+            soup_check = BeautifulSoup(driver.page_source, 'html.parser')
+            if "Student Name" in soup_check.get_text():
+                print("✅ Result found after wait")
+                result_found = True
+        
+        if not result_found:
             return jsonify({
                 'status': 'error', 
                 'message': 'Result window did not open. Please reload captcha and try again.'
@@ -280,10 +311,14 @@ def fetch_result():
             else:
                 uni_rank = "N/A"
 
-            # Close popup window
-            if len(driver.window_handles) > 1:
-                driver.close()
-                driver.switch_to.window(driver.window_handles[0])
+            # Close popup window if it was opened
+            try:
+                if len(driver.window_handles) > 1:
+                    driver.close()
+                    driver.switch_to.window(driver.window_handles[0])
+                    print("✅ Closed popup window")
+            except:
+                pass
             
             return jsonify({
                 'status': 'success', 
@@ -291,13 +326,16 @@ def fetch_result():
                 'ranks': {'uni_rank': uni_rank, 'coll_rank': "N/A"}
             })
         else:
-            # Close popup if failed to parse
-            if len(driver.window_handles) > 1:
-                driver.close()
-                driver.switch_to.window(driver.window_handles[0])
+            # Failed to parse - try closing popup and return error
+            try:
+                if len(driver.window_handles) > 1:
+                    driver.close()
+                    driver.switch_to.window(driver.window_handles[0])
+            except:
+                pass
             return jsonify({
                 'status': 'error', 
-                'message': 'Could not parse result page. Please try again.'
+                'message': 'Could not parse result. The page structure may have changed or result not available.'
             })
 
     except Exception as e:

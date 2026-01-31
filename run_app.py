@@ -141,51 +141,86 @@ def get_leaderboard():
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)})
 
-# --- NEW ANALYSIS ROUTE ---
+# --- ANALYSIS ROUTE (Updated) ---
 @app.route('/analysis')
 def get_analysis():
     global students_col, db_connected
     if not db_connected: connect_db()
     
     subject_code = request.args.get('subject')
-    
     stats = {'total': 0, 'pass': 0, 'fail': 0}
-    failed_list = []
+    result_list = []
 
     try:
-        if subject_code and subject_code != 'overall':
-            # --- SPECIFIC SUBJECT LOGIC ---
-            # Find students who have this subject in their list
+        if subject_code.startswith('class_'):
+            # --- CLASS EQUIVALENCE LOGIC ---
+            # Fetch all students to calculate percentage
+            students = list(students_col.find({}, {'_id': 0, 'usn': 1, 'name': 1, 'total_marks': 1, 'subjects': 1}))
+            class_type = subject_code.split('_')[1] # fcd, fc, sc, p
+            
+            for s in students:
+                # 1. Must pass ALL subjects to get a Class
+                has_failed = any(sub['result'] != 'P' for sub in s['subjects'])
+                if has_failed: continue 
+
+                # 2. Calculate Percentage
+                try:
+                    perc = (s.get('total_marks', 0) / 900) * 100
+                except: perc = 0
+                
+                # 3. Check Range
+                match = False
+                status_label = ""
+                
+                if class_type == 'fcd' and perc >= 70:
+                    match = True; status_label = "Distinction"
+                elif class_type == 'fc' and 60 <= perc < 70:
+                    match = True; status_label = "First Class"
+                elif class_type == 'sc' and 50 <= perc < 60:
+                    match = True; status_label = "Second Class"
+                elif class_type == 'p' and 40 <= perc < 50: # Strict check to avoid overlap with SC
+                    match = True; status_label = "Pass Class"
+
+                if match:
+                    result_list.append({
+                        'usn': s['usn'],
+                        'name': s['name'],
+                        'marks': f"{perc:.2f}%", # Show percentage in marks column
+                        'status': status_label
+                    })
+            
+            stats['total'] = len(result_list)
+            # For class lists, pass/fail stats are redundant, so we just show total count
+            stats['pass'] = len(result_list)
+            stats['fail'] = 0
+
+        elif subject_code and subject_code != 'overall':
+            # --- SPECIFIC SUBJECT FAILURE LOGIC ---
             query = {"subjects.code": subject_code}
             students = list(students_col.find(query, {'_id': 0, 'usn': 1, 'name': 1, 'subjects': 1}))
-            
             stats['total'] = len(students)
             
             for s in students:
-                # Find the specific subject entry
                 subject_data = next((sub for sub in s['subjects'] if sub['code'] == subject_code), None)
-                
                 if subject_data:
                     if subject_data['result'] == 'P':
                         stats['pass'] += 1
                     else:
                         stats['fail'] += 1
-                        failed_list.append({
+                        result_list.append({
                             'usn': s['usn'],
                             'name': s['name'],
                             'marks': subject_data['total'],
                             'status': subject_data['result']
                         })
         else:
-            # --- OVERALL LOGIC ---
-            # Fail = Failed in AT LEAST ONE subject
+            # --- OVERALL FAILURES LOGIC ---
             students = list(students_col.find({}, {'_id': 0, 'usn': 1, 'name': 1, 'subjects': 1}))
             stats['total'] = len(students)
             
             for s in students:
                 has_failed = False
                 failed_subjects = []
-                
                 for sub in s['subjects']:
                     if sub['result'] != 'P':
                         has_failed = True
@@ -193,16 +228,16 @@ def get_analysis():
                 
                 if has_failed:
                     stats['fail'] += 1
-                    failed_list.append({
+                    result_list.append({
                         'usn': s['usn'],
                         'name': s['name'],
-                        'marks': ', '.join(failed_subjects), # Show which subjects they failed
+                        'marks': ', '.join(failed_subjects),
                         'status': 'FAIL'
                     })
                 else:
                     stats['pass'] += 1
 
-        return jsonify({'status': 'success', 'stats': stats, 'data': failed_list})
+        return jsonify({'status': 'success', 'stats': stats, 'data': result_list})
     
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)})
@@ -227,9 +262,12 @@ def fetch_result():
             driver.get("https://results.vtu.ac.in/D25J26Ecbcs/index.php")
         
         wait = WebDriverWait(driver, 15)
+        
+        # Fill Form
         wait.until(EC.presence_of_element_located((By.NAME, "lns"))).send_keys(usn)
         wait.until(EC.presence_of_element_located((By.NAME, "captchacode"))).send_keys(captcha_text)
         
+        # Click Submit
         submit_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//input[@type='submit']")))
         driver.execute_script("arguments[0].click();", submit_btn)
         

@@ -140,22 +140,32 @@
                         
                         <div class="input-group mb-4">
                             <select id="subject-select" class="form-select form-select-lg" onchange="fetchAnalysis()">
-                                <option value="overall" selected>Overall Performance (All Subjects)</option>
-                                <option value="BCS501">BCS501 - Software Engineering</option>
-                                <option value="BCS502">BCS502 - Computer Networks</option>
-                                <option value="BCS503">BCS503 - Theory of Computation</option>
-                                <option value="BCSL504">BCSL504 - Web Technology Lab</option>
-                                <option value="BCS515B">BCS515B - Artificial Intelligence</option>
-                                <option value="BCS586">BCS586 - Mini Project</option>
-                                <option value="BRMK557">BRMK557 - Research Methodology</option>
-                                <option value="BCS508">BCS508 - Environmental Studies and E-Waste Management</option>
+                                <optgroup label="General">
+                                    <option value="overall" selected>Overall Failures</option>
+                                </optgroup>
+                                <optgroup label="Class Equivalence (Based on %)">
+                                    <option value="class_fcd">First Class with Distinction (>= 70%)</option>
+                                    <option value="class_fc">First Class (60% - 69%)</option>
+                                    <option value="class_sc">Second Class (50% - 59%)</option>
+                                    <option value="class_p">Pass Class (40% - 49%)</option>
+                                </optgroup>
+                                <optgroup label="Subject Failure Analysis">
+                                    <option value="BCS501">BCS501 - Software Engineering</option>
+                                    <option value="BCS502">BCS502 - Computer Networks</option>
+                                    <option value="BCS503">BCS503 - Theory of Computation</option>
+                                    <option value="BCSL504">BCSL504 - Web Technology Lab</option>
+                                    <option value="BCS515B">BCS515B - Artificial Intelligence</option>
+                                    <option value="BCS586">BCS586 - Mini Project</option>
+                                    <option value="BRMK557">BRMK557 - Research Methodology</option>
+                                    <option value="BCS508">BCS508 - Environmental Studies and E-Waste Management</option>
+                                </optgroup>
                             </select>
                             <button class="btn btn-danger px-4" onclick="fetchAnalysis()">Analyze</button>
                         </div>
 
                         <div class="stats-container" id="analysis-stats">
                             <div class="stat-box bg-info">
-                                <div>Total Checked</div>
+                                <div>Total Found</div>
                                 <div class="stat-value" id="stats-total">0</div>
                             </div>
                             <div class="stat-box bg-sgpa">
@@ -169,10 +179,10 @@
                         </div>
 
                         <div class="table-responsive mt-3">
-                            <h5 class="text-danger fw-bold"><i class="fas fa-list"></i> List of Failed Students</h5>
+                            <h5 class="text-danger fw-bold"><i class="fas fa-list"></i> Student List</h5>
                             <table class="table table-hover text-center align-middle border">
                                 <thead class="table-danger">
-                                    <tr><th>USN</th><th>Name</th><th>Marks / Failed Subs</th><th>Status</th></tr>
+                                    <tr><th>USN</th><th>Name</th><th>Data / Percentage</th><th>Status</th></tr>
                                 </thead>
                                 <tbody id="failures-body">
                                     <tr><td colspan="4" class="text-muted py-4">Select options to load data.</td></tr>
@@ -272,7 +282,7 @@
         } catch (err) { tbody.innerHTML = '<tr><td colspan="6" class="text-danger">Failed to load</td></tr>'; }
     }
 
-    // --- 4. ANALYSIS ---
+    // --- 4. ANALYSIS (Unified) ---
     async function fetchAnalysis() {
         const subject = document.getElementById('subject-select').value;
         const tbody = document.getElementById('failures-body');
@@ -296,11 +306,12 @@
                 if (json.data.length > 0) {
                     let html = '';
                     json.data.forEach(s => {
-                        html += `<tr><td>${s.usn}</td><td>${s.name}</td><td class="fw-bold">${s.marks}</td><td class="text-danger fw-bold">${s.status}</td></tr>`;
+                        let statusColor = (s.status === 'FAIL') ? 'text-danger fw-bold' : 'text-primary fw-bold';
+                        html += `<tr><td>${s.usn}</td><td>${s.name}</td><td class="fw-bold">${s.marks}</td><td class="${statusColor}">${s.status}</td></tr>`;
                     });
                     tbody.innerHTML = html;
                 } else {
-                    tbody.innerHTML = '<tr><td colspan="4" class="text-success fw-bold py-4"><i class="fas fa-check-circle"></i> No failures found! 🎉</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-success fw-bold py-4"><i class="fas fa-check-circle"></i> No records found for this category!</td></tr>';
                 }
             } else {
                 tbody.innerHTML = `<tr><td colspan="4" class="text-danger">${json.message}</td></tr>`;

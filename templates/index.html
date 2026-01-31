@@ -26,7 +26,13 @@
         .rank-1 { background: linear-gradient(135deg, #fef3c7, #fde68a) !important; color: #78350f; font-weight: bold; }
         .rank-2 { background: linear-gradient(135deg, #f3f4f6, #e5e7eb) !important; color: #374151; font-weight: bold; }
         .rank-3 { background: linear-gradient(135deg, #fed7aa, #fdba74) !important; color: #9a3412; font-weight: bold; }
-        #student-name { color: var(--dark); font-weight: 700; font-size: 1.5rem; margin-bottom: 1.5rem; padding: 1.5rem; background: #f0f4ff; border-radius: 15px; border-left: 5px solid var(--primary); }
+        #student-name { color: var(--dark); font-weight: 700; font-size: 1.5rem; margin-bottom: 0.5rem; }
+        .student-header { padding: 1.5rem; background: #f0f4ff; border-radius: 15px; border-left: 5px solid var(--primary); margin-bottom: 1.5rem; }
+        .class-badge { font-size: 1rem; padding: 0.5rem 1rem; border-radius: 50px; font-weight: 600; display: inline-block; }
+        .badge-fcd { background-color: #d1fae5; color: #065f46; border: 1px solid #10b981; }
+        .badge-fc { background-color: #e0f2fe; color: #075985; border: 1px solid #0ea5e9; }
+        .badge-sc { background-color: #ffedd5; color: #9a3412; border: 1px solid #f97316; }
+        .badge-fail { background-color: #fee2e2; color: #991b1b; border: 1px solid #ef4444; }
         .credit-footer { position: fixed; bottom: 10px; right: 15px; font-size: 0.85rem; color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 8px; backdrop-filter: blur(5px); }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
     </style>
@@ -86,7 +92,10 @@
 
                 <div class="col-md-7" id="result-section" style="display:none;">
                     <div class="card p-4">
-                        <div id="student-name"></div>
+                        <div class="student-header">
+                            <div id="student-name"></div>
+                            <div id="class-display" class="class-badge"></div>
+                        </div>
                         <div class="stats-container">
                             <div class="stat-box bg-sgpa">
                                 <div>SGPA</div>
@@ -145,18 +154,18 @@
                                 </optgroup>
                                 <optgroup label="Class Equivalence (Based on %)">
                                     <option value="class_fcd">First Class with Distinction (>= 70%)</option>
-                                    <option value="class_fc">First Class (60% - 70%)</option>
-                                    <option value="class_sc">Second Class (50% - 60%)</option>
-                                    <option value="class_p">Pass Class (40% - 50%)</option>
+                                    <option value="class_fc">First Class (60% - 69%)</option>
+                                    <option value="class_sc">Second Class (50% - 59%)</option>
+                                    <option value="class_p">Pass Class (40% - 49%)</option>
                                 </optgroup>
                                 <optgroup label="Subject Failure Analysis">
                                     <option value="BCS501">BCS501 - Software Engineering</option>
                                     <option value="BCS502">BCS502 - Computer Networks</option>
                                     <option value="BCS503">BCS503 - Theory of Computation</option>
                                     <option value="BCSL504">BCSL504 - Web Technology Lab</option>
-                                    <option value="BCS515B">BCS515B - Artificial Intelligence</option>
+                                    <option value="BCS515B">BCS515B - Artificial Intelligence </option>
                                     <option value="BCS586">BCS586 - Mini Project</option>
-                                    <option value="BRMK557">BRMK557 - Research Methodology</option>
+                                    <option value="BRMK557">BRMK557 - Research Methodology & IPR</option>
                                     <option value="BCS508">BCS508 - Environmental Studies and E-Waste Management</option>
                                 </optgroup>
                             </select>
@@ -236,6 +245,16 @@
                 document.getElementById('perc-display').innerText = s.percentage;
                 document.getElementById('total-marks-display').innerText = s.total_marks;
                 document.getElementById('rank-display').innerText = "#" + data.ranks.uni_rank;
+
+                // CLASS DISPLAY
+                const classEl = document.getElementById('class-display');
+                classEl.innerText = s.class_result;
+                classEl.className = 'class-badge'; // reset
+                if(s.class_result.includes("Distinction")) classEl.classList.add('badge-fcd');
+                else if(s.class_result.includes("First")) classEl.classList.add('badge-fc');
+                else if(s.class_result.includes("Second")) classEl.classList.add('badge-sc');
+                else if(s.class_result.includes("Fail")) classEl.classList.add('badge-fail');
+                else classEl.classList.add('bg-light');
 
                 let rows = '';
                 s.subjects.forEach(sub => {

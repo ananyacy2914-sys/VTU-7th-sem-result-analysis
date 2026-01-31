@@ -141,7 +141,6 @@ def get_leaderboard():
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)})
 
-# --- ANALYSIS ROUTE (Updated) ---
 @app.route('/analysis')
 def get_analysis():
     global students_col, db_connected
@@ -153,49 +152,42 @@ def get_analysis():
 
     try:
         if subject_code.startswith('class_'):
-            # --- CLASS EQUIVALENCE LOGIC ---
-            # Fetch all students to calculate percentage
+            # --- CLASS EQUIVALENCE LOGIC (LIST FILTER) ---
             students = list(students_col.find({}, {'_id': 0, 'usn': 1, 'name': 1, 'total_marks': 1, 'subjects': 1}))
-            class_type = subject_code.split('_')[1] # fcd, fc, sc, p
+            class_type = subject_code.split('_')[1]
             
             for s in students:
-                # 1. Must pass ALL subjects to get a Class
                 has_failed = any(sub['result'] != 'P' for sub in s['subjects'])
                 if has_failed: continue 
 
-                # 2. Calculate Percentage
                 try:
                     perc = (s.get('total_marks', 0) / 900) * 100
                 except: perc = 0
                 
-                # 3. Check Range
                 match = False
                 status_label = ""
                 
-                if class_type == 'fcd' and perc >= 70.00:
+                if class_type == 'fcd' and perc >= 70:
                     match = True; status_label = "Distinction"
-                elif class_type == 'fc' and 60.00 <= perc < 70.00:
+                elif class_type == 'fc' and 60 <= perc < 70:
                     match = True; status_label = "First Class"
-                elif class_type == 'sc' and 50.00 <= perc < 60.00:
+                elif class_type == 'sc' and 50 <= perc < 60:
                     match = True; status_label = "Second Class"
-                elif class_type == 'p' and 40.00 <= perc < 50.00: # Strict check to avoid overlap with SC
+                elif class_type == 'p' and 40 <= perc < 50:
                     match = True; status_label = "Pass Class"
 
                 if match:
                     result_list.append({
-                        'usn': s['usn'],
-                        'name': s['name'],
-                        'marks': f"{perc:.2f}%", # Show percentage in marks column
-                        'status': status_label
+                        'usn': s['usn'], 'name': s['name'],
+                        'marks': f"{perc:.2f}%", 'status': status_label
                     })
             
             stats['total'] = len(result_list)
-            # For class lists, pass/fail stats are redundant, so we just show total count
             stats['pass'] = len(result_list)
             stats['fail'] = 0
 
         elif subject_code and subject_code != 'overall':
-            # --- SPECIFIC SUBJECT FAILURE LOGIC ---
+            # --- SPECIFIC SUBJECT FAILURE ---
             query = {"subjects.code": subject_code}
             students = list(students_col.find(query, {'_id': 0, 'usn': 1, 'name': 1, 'subjects': 1}))
             stats['total'] = len(students)
@@ -208,13 +200,11 @@ def get_analysis():
                     else:
                         stats['fail'] += 1
                         result_list.append({
-                            'usn': s['usn'],
-                            'name': s['name'],
-                            'marks': subject_data['total'],
-                            'status': subject_data['result']
+                            'usn': s['usn'], 'name': s['name'],
+                            'marks': subject_data['total'], 'status': subject_data['result']
                         })
         else:
-            # --- OVERALL FAILURES LOGIC ---
+            # --- OVERALL FAILURES ---
             students = list(students_col.find({}, {'_id': 0, 'usn': 1, 'name': 1, 'subjects': 1}))
             stats['total'] = len(students)
             
@@ -229,10 +219,8 @@ def get_analysis():
                 if has_failed:
                     stats['fail'] += 1
                     result_list.append({
-                        'usn': s['usn'],
-                        'name': s['name'],
-                        'marks': ', '.join(failed_subjects),
-                        'status': 'FAIL'
+                        'usn': s['usn'], 'name': s['name'],
+                        'marks': ', '.join(failed_subjects), 'status': 'FAIL'
                     })
                 else:
                     stats['pass'] += 1
@@ -263,11 +251,9 @@ def fetch_result():
         
         wait = WebDriverWait(driver, 15)
         
-        # Fill Form
         wait.until(EC.presence_of_element_located((By.NAME, "lns"))).send_keys(usn)
         wait.until(EC.presence_of_element_located((By.NAME, "captchacode"))).send_keys(captcha_text)
         
-        # Click Submit
         submit_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//input[@type='submit']")))
         driver.execute_script("arguments[0].click();", submit_btn)
         
@@ -349,7 +335,11 @@ def calculate_grade_point(marks):
     except: return 0
 
 def parse_result_page(soup, usn):
-    data = {'usn': usn, 'name': "Unknown", 'sgpa': "0.00", 'sgpa_float': 0.0, 'percentage': "0.00%", 'total_marks': 0, 'subjects': []}
+    data = {
+        'usn': usn, 'name': "Unknown", 'sgpa': "0.00", 'sgpa_float': 0.0, 
+        'percentage': "0.00%", 'total_marks': 0, 'class_result': "N/A", 
+        'subjects': []
+    }
     try:
         all_text = list(soup.stripped_strings)
         for i, text in enumerate(all_text):
@@ -362,9 +352,7 @@ def parse_result_page(soup, usn):
                     break
         
         div_rows = soup.find_all('div', class_='divTableRow')
-        total_credits = 0
-        total_gp = 0
-        running_total_marks = 0 
+        total_credits = 0; total_gp = 0; running_total_marks = 0 
         
         for row in div_rows:
             cells = row.find_all('div', class_='divTableCell')
@@ -374,31 +362,36 @@ def parse_result_page(soup, usn):
                     marks = cells[4].text.strip()
                     credits = get_credits_2022_cs_5th(code)
                     gp = calculate_grade_point(marks)
-                    
-                    if credits > 0:
-                        total_credits += credits
-                        total_gp += (credits * gp)
-                    
+                    if credits > 0: total_credits += credits; total_gp += (credits * gp)
                     running_total_marks += int(marks)
-                    data['subjects'].append({
-                        'code': code, 'name': cells[1].text.strip(), 
-                        'total': marks, 'result': cells[5].text.strip()
-                    })
+                    data['subjects'].append({'code': code, 'name': cells[1].text.strip(), 'total': marks, 'result': cells[5].text.strip()})
                 except: continue
         
         data['total_marks'] = running_total_marks
         
+        perc_val = 0.0
         if total_credits > 0:
             sgpa_val = total_gp / total_credits
             data['sgpa'] = "{:.2f}".format(sgpa_val)
             data['sgpa_float'] = float(sgpa_val)
+            perc_val = (running_total_marks / 900) * 100
+            data['percentage'] = "{:.2f}%".format(perc_val)
+        
+        # --- CALCULATE CLASS ---
+        has_failed = False
+        if len(data['subjects']) > 0:
+            for sub in data['subjects']:
+                if sub['result'] != 'P': has_failed = True; break
             
-            try:
-                perc = (running_total_marks / 900) * 100
-                data['percentage'] = "{:.2f}%".format(perc)
-            except:
-                data['percentage'] = "0.00%"
-            
+            if has_failed:
+                data['class_result'] = "Fail"
+            else:
+                if perc_val >= 70: data['class_result'] = "First Class with Distinction"
+                elif 60 <= perc_val < 70: data['class_result'] = "First Class"
+                elif 50 <= perc_val < 60: data['class_result'] = "Second Class"
+                elif 40 <= perc_val < 50: data['class_result'] = "Pass Class"
+                else: data['class_result'] = "Fail"
+
     except Exception as e: print(e)
     return data
 

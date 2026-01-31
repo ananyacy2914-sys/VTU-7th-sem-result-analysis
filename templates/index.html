@@ -17,16 +17,9 @@
             --danger: #ef4444;
             --dark: #1e293b;
             --light: #f8fafc;
-            --gold: #fbbf24;
-            --silver: #d1d5db;
-            --bronze: #f97316;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -40,21 +33,14 @@
         body::before {
             content: '';
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0; width: 100%; height: 100%;
             background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
             pointer-events: none;
             z-index: 0;
         }
 
-        .container {
-            position: relative;
-            z-index: 1;
-        }
+        .container { position: relative; z-index: 1; }
 
-        /* Header/Title */
         .page-header {
             text-align: center;
             margin: 2rem 0 3rem;
@@ -75,7 +61,6 @@
             font-weight: 300;
         }
 
-        /* Tab Navigation */
         .nav-pills {
             background: rgba(255,255,255,0.1);
             backdrop-filter: blur(10px);
@@ -105,7 +90,6 @@
             box-shadow: 0 4px 15px rgba(99,102,241,0.4);
         }
 
-        /* Cards */
         .card {
             border-radius: 20px;
             border: none;
@@ -126,14 +110,6 @@
             font-size: 1.5rem;
         }
 
-        /* Form Elements */
-        .form-label {
-            color: var(--dark);
-            font-weight: 600;
-            font-size: 0.9rem;
-            margin-bottom: 0.5rem;
-        }
-
         .form-control {
             border: 2px solid #e2e8f0;
             border-radius: 12px;
@@ -147,7 +123,6 @@
             box-shadow: 0 0 0 4px rgba(99,102,241,0.1);
         }
 
-        /* Captcha Section */
         .captcha-section {
             background: linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 100%);
             padding: 1.5rem;
@@ -180,7 +155,6 @@
             transform: scale(1.05);
         }
 
-        /* Submit Button */
         .btn-submit {
             background: linear-gradient(135deg, var(--primary), var(--secondary));
             border: none;
@@ -199,11 +173,6 @@
             box-shadow: 0 6px 20px rgba(99,102,241,0.4);
         }
 
-        .btn-submit:active {
-            transform: translateY(0);
-        }
-
-        /* Stats Boxes */
         .stats-container {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -222,62 +191,15 @@
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
         }
 
-        .stat-box::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, rgba(255,255,255,0.2), transparent);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        .stat-box:hover::before {
-            opacity: 1;
-        }
-
-        .stat-box:hover {
-            transform: translateY(-5px) scale(1.02);
-        }
-
-        .bg-sgpa {
-            background: linear-gradient(135deg, #10b981, #059669);
-        }
-
-        .bg-marks {
-            background: linear-gradient(135deg, #3b82f6, #2563eb);
-        }
-
-        .bg-rank {
-            background: linear-gradient(135deg, #f59e0b, #d97706);
-        }
-
-        .stat-icon {
-            font-size: 2.5rem;
-            margin-bottom: 0.5rem;
-            opacity: 0.9;
-        }
+        .bg-sgpa { background: linear-gradient(135deg, #10b981, #059669); }
+        .bg-marks { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+        .bg-rank { background: linear-gradient(135deg, #f59e0b, #d97706); }
 
         .stat-value {
             font-size: 3rem;
             font-weight: 800;
             line-height: 1;
             margin: 0.5rem 0;
-        }
-
-        .stat-label {
-            font-size: 0.9rem;
-            opacity: 0.9;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            font-weight: 600;
-        }
-
-        /* Table Styling */
-        .table {
-            margin-bottom: 0;
         }
 
         .table thead {
@@ -294,204 +216,49 @@
             letter-spacing: 0.5px;
         }
 
-        .table tbody tr {
-            transition: all 0.2s ease;
-            border-bottom: 1px solid #e5e7eb;
-        }
-
-        .table tbody tr:hover {
-            background: #f9fafb;
-            transform: scale(1.01);
-        }
-
-        .table tbody td {
-            padding: 1.2rem;
-            vertical-align: middle;
-        }
-
-        .pass {
-            color: var(--success);
-            font-weight: 700;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.3rem;
-        }
-
-        .pass::before {
-            content: '✓';
-            display: inline-block;
-            background: var(--success);
-            color: white;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            text-align: center;
-            line-height: 20px;
-            font-size: 0.8rem;
-        }
-
-        .fail {
-            color: var(--danger);
-            font-weight: 700;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.3rem;
-        }
-
-        .fail::before {
-            content: '✗';
-            display: inline-block;
-            background: var(--danger);
-            color: white;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            text-align: center;
-            line-height: 20px;
-            font-size: 0.8rem;
-        }
+        .pass { color: var(--success); font-weight: 700; display: inline-flex; align-items: center; gap: 0.3rem; }
+        .pass::before { content: '✓'; display: inline-block; background: var(--success); color: white; width: 20px; height: 20px; border-radius: 50%; text-align: center; line-height: 20px; font-size: 0.8rem; }
+        
+        .fail { color: var(--danger); font-weight: 700; display: inline-flex; align-items: center; gap: 0.3rem; }
+        .fail::before { content: '✗'; display: inline-block; background: var(--danger); color: white; width: 20px; height: 20px; border-radius: 50%; text-align: center; line-height: 20px; font-size: 0.8rem; }
 
         /* Leaderboard Ranks */
-        .rank-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            font-weight: 700;
-        }
+        .rank-1 { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #78350f; animation: pulse 2s infinite; }
+        .rank-1 td { background: linear-gradient(135deg, #fef3c7, #fde68a) !important; }
+        
+        .rank-2 { background: linear-gradient(135deg, #e5e7eb, #d1d5db); color: #374151; }
+        .rank-2 td { background: linear-gradient(135deg, #f3f4f6, #e5e7eb) !important; }
+        
+        .rank-3 { background: linear-gradient(135deg, #fb923c, #f97316); color: white; }
+        .rank-3 td { background: linear-gradient(135deg, #fed7aa, #fdba74) !important; }
 
-        .rank-1 {
-            background: linear-gradient(135deg, #fbbf24, #f59e0b);
-            color: #78350f;
-            animation: pulse 2s infinite;
-        }
-
-        .rank-1 td {
-            background: linear-gradient(135deg, #fef3c7, #fde68a) !important;
-        }
-
-        .rank-2 {
-            background: linear-gradient(135deg, #e5e7eb, #d1d5db);
-            color: #374151;
-        }
-
-        .rank-2 td {
-            background: linear-gradient(135deg, #f3f4f6, #e5e7eb) !important;
-        }
-
-        .rank-3 {
-            background: linear-gradient(135deg, #fb923c, #f97316);
-            color: white;
-        }
-
-        .rank-3 td {
-            background: linear-gradient(135deg, #fed7aa, #fdba74) !important;
-        }
-
-        .trophy-icon {
-            font-size: 1.5rem;
-        }
-
-        /* Status Messages */
-        #status-msg {
-            padding: 1rem;
-            border-radius: 10px;
-            font-weight: 600;
-            margin-top: 1rem;
-            animation: shake 0.5s ease;
-        }
-
-        .text-danger {
-            background: #fee2e2;
-            color: #dc2626;
-            border: 1px solid #fca5a5;
-        }
-
-        .text-success {
-            background: #d1fae5;
-            color: #065f46;
-            border: 1px solid #6ee7b7;
-        }
-
-        /* Loading Spinner */
-        .spinner-border-sm {
-            width: 1rem;
-            height: 1rem;
-            border-width: 0.15em;
-        }
-
-        /* Animations */
-        @keyframes fadeInDown {
-            from {
-                opacity: 0;
-                transform: translateY(-30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes pulse {
-            0%, 100% {
-                box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.7);
-            }
-            50% {
-                box-shadow: 0 0 0 10px rgba(251, 191, 36, 0);
-            }
-        }
+        .trophy-icon { font-size: 1.5rem; }
 
         .credit-footer {
-    position: fixed;
-    bottom: 10px;
-    right: 15px;
-    font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.9);
-    font-weight: 500;
-    z-index: 9999;
-    user-select: none;
-}
-
-
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-            20%, 40%, 60%, 80% { transform: translateX(5px); }
+            position: fixed;
+            bottom: 10px;
+            right: 15px;
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 500;
+            z-index: 9999;
+            user-select: none;
         }
 
-        /* Responsive */
+        .text-info { color: #0ea5e9 !important; }
+
+        /* Animations */
+        @keyframes fadeInDown { from { opacity: 0; transform: translateY(-30px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.7); } 50% { box-shadow: 0 0 0 10px rgba(251, 191, 36, 0); } }
+        
         @media (max-width: 768px) {
-            .page-header h1 {
-                font-size: 2rem;
-            }
-
-            .nav-pills .nav-link {
-                padding: 0.6rem 1.5rem;
-                font-size: 0.9rem;
-            }
-
-            .stat-value {
-                font-size: 2.5rem;
-            }
-
-            .stats-container {
-                grid-template-columns: 1fr;
-            }
+            .page-header h1 { font-size: 2rem; }
+            .nav-pills .nav-link { padding: 0.6rem 1.5rem; font-size: 0.9rem; }
+            .stat-value { font-size: 2.5rem; }
+            .stats-container { grid-template-columns: 1fr; }
         }
 
-        /* Student Name Header */
         #student-name {
             color: var(--dark);
             font-weight: 700;
@@ -503,32 +270,20 @@
             border-left: 5px solid var(--primary);
             animation: fadeInUp 0.6s ease;
         }
-
-        /* Empty State */
-        .empty-state {
-            text-align: center;
-            padding: 3rem;
-            color: #64748b;
-        }
-
-        .empty-state i {
-            font-size: 4rem;
-            margin-bottom: 1rem;
-            opacity: 0.5;
-        }
+        
+        .empty-state { text-align: center; padding: 3rem; color: #64748b; }
+        .empty-state i { font-size: 4rem; margin-bottom: 1rem; opacity: 0.5; }
     </style>
 </head>
 <body>
 
 <div class="container py-5">
     
-    <!-- Header -->
     <div class="page-header">
         <h1><i class="fas fa-graduation-cap"></i> D.B.I.T. Result Portal</h1>
         <p>Check your results and compete on the leaderboard</p>
     </div>
 
-    <!-- Tab Navigation -->
     <ul class="nav nav-pills justify-content-center mb-5" id="pills-tab" role="tablist">
         <li class="nav-item" role="presentation">
             <button class="nav-link active" id="pills-check-tab" data-bs-toggle="pill" data-bs-target="#pills-check" type="button">
@@ -544,7 +299,6 @@
 
     <div class="tab-content" id="pills-tabContent">
         
-        <!-- Check Result Tab -->
         <div class="tab-pane fade show active" id="pills-check" role="tabpanel">
             <div class="row justify-content-center">
                 <div class="col-lg-5 col-md-6 mb-4">
@@ -588,11 +342,10 @@
                                 <i class="fas fa-search"></i> GET MY RESULT
                             </button>
                         </form>
-                        <div id="status-msg"></div>
+                        <div id="status-msg" style="padding: 1rem; border-radius: 10px; font-weight: 600; margin-top: 1rem;"></div>
                     </div>
                 </div>
 
-                <!-- Result Display -->
                 <div id="result-section" class="col-lg-7 col-md-6" style="display:none;">
                     <div id="student-name"></div>
 
@@ -636,7 +389,6 @@
             </div>
         </div>
 
-        <!-- Leaderboard Tab -->
         <div class="tab-pane fade" id="pills-leaderboard" role="tabpanel">
             <div class="card p-4">
                 <h3 class="card-title text-center mb-4">
@@ -651,11 +403,12 @@
                                 <th><i class="fas fa-user"></i> Name</th>
                                 <th><i class="fas fa-chart-bar"></i> Total Marks</th>
                                 <th><i class="fas fa-graduation-cap"></i> SGPA</th>
+                                <th><i class="fas fa-percent"></i> Percentage</th>
                             </tr>
                         </thead>
                         <tbody id="leaderboard-body">
                             <tr>
-                                <td colspan="5" class="empty-state">
+                                <td colspan="6" class="empty-state">
                                     <i class="fas fa-spinner fa-spin"></i>
                                     <p>Loading leaderboard...</p>
                                 </td>
@@ -708,26 +461,24 @@
         // Validate USN format
         const usnInput = document.querySelector('input[name="usn"]');
         const usn = usnInput.value.trim().toUpperCase();
+        const status = document.getElementById('status-msg');
         
         // Check if USN starts with 1DB23CS or 1DB24CS
         if (!usn.startsWith('1DB23CS') && !usn.startsWith('1DB24CS')) {
-            const status = document.getElementById('status-msg');
-            status.className = "text-danger";
+            status.className = "text-danger p-3 bg-danger-subtle border border-danger rounded";
             status.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Invalid USN! Only 1DB23CS or 1DB24CS USNs are allowed`;
             return;
         }
         
         // Check USN length
         if (usn.length !== 10) {
-            const status = document.getElementById('status-msg');
-            status.className = "text-danger";
+            status.className = "text-danger p-3 bg-danger-subtle border border-danger rounded";
             status.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Invalid USN format! USN should be exactly 10 characters`;
             return;
         }
         
         const btn = document.querySelector('.btn-submit');
         const resultSection = document.getElementById('result-section');
-        const status = document.getElementById('status-msg');
         
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Fetching Your Result...';
@@ -763,12 +514,12 @@
                 // Scroll to results
                 resultSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             } else {
-                status.className = "text-danger";
+                status.className = "text-danger p-3 bg-danger-subtle border border-danger rounded";
                 status.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${data.message}`;
                 loadCaptcha();
             }
         } catch (err) { 
-            status.className = "text-danger";
+            status.className = "text-danger p-3 bg-danger-subtle border border-danger rounded";
             status.innerHTML = `<i class="fas fa-times-circle"></i> Connection Error. Please try again.`;
         }
         
@@ -781,7 +532,7 @@
         const tbody = document.getElementById('leaderboard-body');
         tbody.innerHTML = `
             <tr>
-                <td colspan="5" class="empty-state">
+                <td colspan="6" class="empty-state">
                     <i class="fas fa-spinner fa-spin"></i>
                     <p>Loading leaderboard...</p>
                 </td>
@@ -810,6 +561,7 @@
                         rowClass = 'rank-3';
                     }
 
+                    // Added Percentage Column
                     tbody.innerHTML += `
                         <tr class="${rowClass}">
                             <td class="fw-bold">${rankIcon} #${student.rank}</td>
@@ -817,13 +569,14 @@
                             <td class="fw-bold">${student.name}</td>
                             <td class="fw-bold text-primary">${student.total_marks}</td>
                             <td class="fw-bold text-success">${student.sgpa}</td>
+                            <td class="fw-bold text-info">${student.percentage}</td>
                         </tr>
                     `;
                 });
             } else {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="5" class="empty-state">
+                        <td colspan="6" class="empty-state">
                             <i class="fas fa-inbox"></i>
                             <p>No results yet. Be the first to check your result!</p>
                         </td>
@@ -833,7 +586,7 @@
         } catch (e) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="5" class="empty-state">
+                    <td colspan="6" class="empty-state">
                         <i class="fas fa-exclamation-circle text-danger"></i>
                         <p>Error loading leaderboard</p>
                     </td>

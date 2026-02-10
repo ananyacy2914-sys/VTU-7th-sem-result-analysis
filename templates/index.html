@@ -47,7 +47,7 @@
                 <form id="resultForm" class="space-y-5">
                     <div>
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">USN</label>
-                        <input type="text" name="usn" placeholder="1DB21CS..." class="w-full bg-gray-50 border border-gray-300 p-3 rounded-lg font-mono font-bold uppercase" required>
+                        <input type="text" name="usn" placeholder="1DB22CS & 1DB23CS" class="w-full bg-gray-50 border border-gray-300 p-3 rounded-lg font-mono font-bold uppercase" required>
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Captcha</label>
@@ -147,11 +147,12 @@
                                 <option value="sc">Second Class (50% - 59%)</option>
                             </optgroup>
                             <optgroup label="Subject Failure Analysis">
-                                <option value="BCS701">BCS701 - Advanced Computer Architecture</option>
-                                <option value="BCS702">BCS702 - Cloud Computing</option>
-                                <option value="BCS703">BCS703 - Information & Network Security</option>
-                                <option value="BCS714">BCS714 - Parallel Programming</option>
-                                <option value="BCS755">BCS755 - Deep Learning</option>
+                                <option value="BCS701">BCS701</option>
+                                <option value="BCS702">BCS702</option>
+                                <option value="BCS703">BCS703</option>
+                                <option value="BCS714">BCS714</option>
+                                <option value="BCS755">BCS755</option>
+                                <option value="BCS755">BCS786</option>
                             </optgroup>
                         </select>
                         <button onclick="runAnalysis()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-bold shadow transition">
@@ -284,51 +285,53 @@
         }
 
         // --- ANALYSIS LOGIC (NEW) ---
-        function runAnalysis() {
-            const cat = $('#anal-category').val();
-            const btn = $('button[onclick="runAnalysis()"]');
-            btn.text('Processing...').addClass('opacity-75');
+        // --- ANALYSIS LOGIC ---
+function runAnalysis() {
+    const cat = $('#anal-category').val();
+    const btn = $('button[onclick="runAnalysis()"]');
+    btn.text('Processing...').addClass('opacity-75');
 
-            $.get(`/get_analysis?category=${cat}`, function(r) {
-                btn.text('Analyze').removeClass('opacity-75');
-                
-                if(r.status === 'success') {
-                    // Update Stats
-                    $('#stat-total').text(r.stats.total);
-                    $('#stat-pass').text(r.stats.passed);
-                    $('#stat-fail').text(r.stats.failed);
-                    $('#list-count').text(`${r.students.length} Students`);
+    $.get(`/get_analysis?category=${cat}`, function(r) {
+        btn.text('Analyze').removeClass('opacity-75');
+        
+        if(r.status === 'success') {
+            // Update Stats
+            $('#stat-total').text(r.stats.total);
+            $('#stat-pass').text(r.stats.passed);
+            $('#stat-fail').text(r.stats.failed);
+            $('#list-count').text(`${r.students.length} Students`);
 
-                    // Render Table
-                    let html = '';
-                    if(r.students.length === 0) {
-                        html = '<tr><td colspan="4" class="p-6 text-center text-gray-400">No students found in this category.</td></tr>';
-                    } else {
-                        r.students.forEach(s => {
-                            // Determine what to show in "Data" column
-                            let dataInfo = s.percentage || 'N/A';
-                            let statusBadge = '<span class="status-P">PASS</span>';
-                            
-                            // If Subject Failure Mode
-                            if(s.fail_marks) {
-                                dataInfo = `<span class="font-mono text-red-600 font-bold">${s.fail_marks} Marks</span>`;
-                                statusBadge = '<span class="status-F">FAIL</span>';
-                            } else if (s.class_result === 'Fail') {
-                                statusBadge = '<span class="status-F">FAIL</span>';
-                            }
-
-                            html += `<tr class="border-b hover:bg-gray-50">
-                                <td class="p-3 font-mono font-bold text-gray-600">${s.usn}</td>
-                                <td class="p-3 font-bold text-gray-800">${s.name}</td>
-                                <td class="p-3">${dataInfo}</td>
-                                <td class="p-3 text-right">${statusBadge}</td>
-                            </tr>`;
-                        });
+            // Render Table
+            let html = '';
+            if(r.students.length === 0) {
+                html = '<tr><td colspan="4" class="p-6 text-center text-gray-400">No students found in this category.</td></tr>';
+            } else {
+                r.students.forEach(s => {
+                    let dataInfo = s.percentage || 'N/A';
+                    let statusBadge = '<span class="status-P">PASS</span>';
+                    
+                    // Logic for Overall Fail List
+                    if(s.fail_summary) {
+                         statusBadge = `<span class="text-xs font-bold text-red-600 bg-red-100 px-2 py-1 rounded">Failed in: ${s.fail_summary}</span>`;
                     }
-                    $('#anal-body').html(html);
-                }
-            });
+                    // Logic for Subject-wise Fail List
+                    else if(s.fail_marks) {
+                        dataInfo = `<span class="font-mono text-red-600 font-bold">${s.fail_marks} Marks</span>`;
+                        statusBadge = '<span class="status-F">FAIL</span>';
+                    }
+
+                    html += `<tr class="border-b hover:bg-gray-50">
+                        <td class="p-3 font-mono font-bold text-gray-600">${s.usn}</td>
+                        <td class="p-3 font-bold text-gray-800">${s.name}</td>
+                        <td class="p-3">${dataInfo}</td>
+                        <td class="p-3 text-right">${statusBadge}</td>
+                    </tr>`;
+                });
+            }
+            $('#anal-body').html(html);
         }
+    });
+}
     </script>
 </body>
 </html>

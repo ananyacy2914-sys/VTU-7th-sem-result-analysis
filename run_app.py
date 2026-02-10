@@ -37,10 +37,9 @@ try:
 except Exception as e:
     logger.error(f"❌ DB Error: {e}")
 
-# --- BROWSER SETUP (STABILIZED) ---
+# --- BROWSER SETUP (High Stability) ---
 def create_driver():
     chrome_options = Options()
-    # Critical Flags for Render Free Tier Stability
     chrome_options.add_argument("--headless=new") 
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
@@ -48,25 +47,23 @@ def create_driver():
     chrome_options.add_argument("--disable-extensions")
     chrome_options.add_argument("--window-size=1920,1080")
     
-    # Render Environment Check
+    # 1. Render Environment Check
     chrome_bin = os.environ.get('CHROME_BIN')
     if chrome_bin:
         chrome_options.binary_location = chrome_bin
-        logger.info(f"🔹 Custom Chrome Path: {chrome_bin}")
         try:
-            # 1. Get Version
+            # Check version to install correct driver
             result = subprocess.run([chrome_bin, "--version"], capture_output=True, text=True)
             ver = result.stdout.strip().split()[-1]
-            logger.info(f"🔹 Chrome Version: {ver}")
-            # 2. Install Matching Driver
             service = Service(ChromeDriverManager(driver_version=ver).install())
         except:
             service = Service(ChromeDriverManager().install())
     else:
+        # Local Environment
         service = Service(ChromeDriverManager().install())
         
     driver = webdriver.Chrome(service=service, options=chrome_options)
-    driver.set_page_load_timeout(30) # Prevent hanging
+    driver.set_page_load_timeout(30)
     return driver
 
 # Global Driver Management
@@ -76,7 +73,9 @@ def get_driver():
     global _driver
     if _driver is None:
         try: _driver = create_driver()
-        except: _driver = create_driver() # Retry once
+        except: 
+            logger.warning("⚠️ Driver creation failed, retrying...")
+            _driver = create_driver()
     return _driver
 
 def reset_driver():
@@ -85,6 +84,7 @@ def reset_driver():
         try: _driver.quit()
         except: pass
     _driver = None
+    logger.info("🔄 Driver Reset Complete")
 
 # --- HELPERS ---
 def get_credits_2022_cs_7th(sub_code):
@@ -121,6 +121,7 @@ def parse_result_page(soup, usn):
         
         div_rows = soup.find_all('div', class_='divTableRow')
         total_credits = 0; total_gp = 0; running_total = 0
+        has_fail = False
         
         for row in div_rows[1:]:
             cells = row.find_all('div', class_='divTableCell')
@@ -129,6 +130,8 @@ def parse_result_page(soup, usn):
                 sub_name = cells[1].text.strip()
                 marks = cells[4].text.strip()
                 res = cells[5].text.strip()
+                
+                if res == 'F': has_fail = True
                 
                 credits = get_credits_2022_cs_7th(code)
                 gp = calculate_grade_point(marks)
@@ -147,18 +150,13 @@ def parse_result_page(soup, usn):
             perc = (running_total / 700) * 100 
             data['percentage'] = "{:.2f}%".format(perc)
             
-            # Standard VTU Class Logic
-            if perc >= 70: data['class_result'] = "First Class with Distinction"
+            if has_fail:
+                data['class_result'] = "Fail"
+            elif perc >= 70: data['class_result'] = "First Class with Distinction"
             elif perc >= 60: data['class_result'] = "First Class"
             elif perc >= 50: data['class_result'] = "Second Class"
             elif perc >= 40: data['class_result'] = "Pass Class"
             else: data['class_result'] = "Fail"
-            
-            # Override if any subject is F
-            for s in data['subjects']:
-                if s['result'] == 'F':
-                    data['class_result'] = "Fail"
-                    break
             
     except: pass
     return data
@@ -169,18 +167,20 @@ def home(): return render_template('index.html')
 
 @app.route('/get_captcha')
 def get_captcha():
-    # RETRY LOGIC for robustness
-    for attempt in range(2):
+    # AUTO-REPAIR LOGIC
+    max_retries = 2
+    for attempt in range(max_retries):
         try:
             driver = get_driver()
             driver.get("https://results.vtu.ac.in/D25J26Ecbcs/index.php")
-            wait = WebDriverWait(driver, 20) # Increased timeout
+            wait = WebDriverWait(driver, 15)
             img = wait.until(EC.presence_of_element_located((By.XPATH, "//img[contains(@src, 'captcha')]")))
             return img.screenshot_as_png, 200, {'Content-Type': 'image/png'}
         except Exception as e:
-            logger.warning(f"⚠️ Captcha Attempt {attempt+1} Failed: {e}")
-            reset_driver() # Kill dead browser and try again loop
-            
+            logger.error(f"⚠️ Captcha Load Failed (Attempt {attempt+1}): {e}")
+            reset_driver() # Kill the broken browser immediately
+            time.sleep(1) # Give it a second to clear memory
+    
     return "Error", 500
 
 @app.route('/fetch_result', methods=['POST'])
@@ -188,14 +188,17 @@ def fetch_result():
     usn = request.form['usn'].strip().upper()
     captcha = request.form['captcha'].strip()
     
-    # Strict USN Filter (Edit based on your batch needs)
-    if not (usn.startswith('1DB21CS') or usn.startswith('1DB22CS') or usn.startswith('1DB23CS')): 
-        return jsonify({'status': 'error', 'message': 'Invalid USN.'})
+    if not (usn.startswith('1DB21CS') or usn.startswith('1DB22CS') or usn.startswith('1DB23CS') or usn.startswith('1DB24CS')):
+        return jsonify({'status': 'error', 'message': 'Invalid USN Series'})
     
     try:
         driver = get_driver()
-        if "results.vtu.ac.in" not in driver.current_url:
-             return jsonify({'status': 'error', 'message': 'Session timeout. Reload Captcha.'})
+        # Ensure driver is still alive
+        try:
+            if "results.vtu.ac.in" not in driver.current_url:
+                raise Exception("Session Lost")
+        except:
+            return jsonify({'status': 'error', 'message': 'Session expired. Please reload Captcha.'})
 
         driver.find_element(By.NAME, "lns").send_keys(usn)
         driver.find_element(By.NAME, "captchacode").send_keys(captcha)
@@ -231,12 +234,12 @@ def fetch_result():
 
             return jsonify({'status': 'success', 'data': student_data})
         
-        return jsonify({'status': 'error', 'message': 'Parsing failed.'})
+        return jsonify({'status': 'error', 'message': 'Parsing failed. Check USN/Captcha.'})
 
     except Exception as e:
         logger.error(f"Fetch Error: {e}")
         reset_driver()
-        return jsonify({'status': 'error', 'message': "Server Error. Try again."})
+        return jsonify({'status': 'error', 'message': "Server Error. Please try again."})
 
 @app.route('/leaderboard')
 def leaderboard():
@@ -257,61 +260,59 @@ def leaderboard():
         return jsonify({'status': 'success', 'data': data})
     except Exception as e: return jsonify({'status': 'error', 'message': str(e)})
 
-# --- ANALYSIS ROUTE ---
+# --- ANALYSIS ROUTE (Fixed for strict fail checking) ---
 @app.route('/get_analysis')
 def get_analysis():
     try:
         category = request.args.get('category', 'overall_fail')
-        
-        # Base Data
         all_students = list(students_col.find({}, {'_id': 0}))
-        total_students = len(all_students)
-        passed_students = sum(1 for s in all_students if s.get('class_result') != 'Fail')
-        failed_students = total_students - passed_students
         
-        response_data = []
+        # Calculate Stats (Strict Fail Check)
+        failed_count = 0
+        for s in all_students:
+            # Check if any subject is 'F' or class result is 'Fail'
+            is_fail = s.get('class_result') == 'Fail' or any(sub.get('result') == 'F' for sub in s.get('subjects', []))
+            if is_fail: failed_count += 1
+            
         stats = {
-            'total': total_students,
-            'passed': passed_students,
-            'failed': failed_students
+            'total': len(all_students),
+            'passed': len(all_students) - failed_count,
+            'failed': failed_count
         }
 
-        # 1. Overall Failures
+        response_data = []
+
         if category == 'overall_fail':
-            response_data = [s for s in all_students if s.get('class_result') == 'Fail']
-        
-        # 2. Class Filters
+            # Add anyone who has AT LEAST one 'F' in subjects
+            for s in all_students:
+                failed_subs = [sub['code'] for sub in s.get('subjects', []) if sub.get('result') == 'F']
+                if failed_subs or s.get('class_result') == 'Fail':
+                    s_copy = s.copy()
+                    # Show which subjects they failed in the status
+                    s_copy['fail_summary'] = ", ".join(failed_subs) if failed_subs else "Fail"
+                    response_data.append(s_copy)
+                    
         elif category == 'fcd':
             response_data = [s for s in all_students if "Distinction" in s.get('class_result', '')]
         elif category == 'fc':
             response_data = [s for s in all_students if s.get('class_result') == 'First Class']
         elif category == 'sc':
             response_data = [s for s in all_students if s.get('class_result') == 'Second Class']
-        
-        # 3. Subject-wise Analysis
         else:
+            # Subject-wise filtering
             subject_code = category
-            subject_failures = []
-            subj_total = 0
-            subj_pass = 0
-            
+            subj_total = 0; subj_pass = 0
             for s in all_students:
                 subj = next((item for item in s.get('subjects', []) if item['code'] == subject_code), None)
                 if subj:
                     subj_total += 1
-                    if subj['result'] == 'P':
-                        subj_pass += 1
+                    if subj['result'] == 'P': subj_pass += 1
                     else:
                         s_copy = s.copy()
                         s_copy['fail_marks'] = subj['total']
-                        subject_failures.append(s_copy)
+                        response_data.append(s_copy)
             
-            response_data = subject_failures
-            stats = {
-                'total': subj_total,
-                'passed': subj_pass,
-                'failed': subj_total - subj_pass
-            }
+            stats = {'total': subj_total, 'passed': subj_pass, 'failed': subj_total - subj_pass}
 
         return jsonify({'status': 'success', 'stats': stats, 'students': response_data})
 

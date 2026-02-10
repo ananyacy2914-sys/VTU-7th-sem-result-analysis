@@ -7,8 +7,11 @@ cd $HOME/project/src
 pip install --upgrade pip
 pip install -r requirements.txt
 
-# Install Playwright browsers
-playwright install chromium
-playwright install-deps chromium
+# Install Playwright and its dependencies
+echo "Installing Playwright browsers..."
+python -m playwright install chromium
+
+echo "Installing Playwright system dependencies..."
+python -m playwright install-deps chromium
 
 echo "✅ Build completed successfully!"

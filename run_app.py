@@ -36,38 +36,60 @@ except Exception as e:
 # --- BROWSER SETUP (FIXED FOR RENDER) ---
 def init_driver():
     """Initialize Chrome driver with proper configuration"""
+    print("🚀 Starting Chrome driver initialization...")
+    
     chrome_options = Options()
     chrome_options.add_argument("--headless=new") 
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--window-size=1920,1080")
+    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+    chrome_options.add_argument("--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
     
     chrome_binary_path = os.environ.get('CHROME_BIN')
     
     if chrome_binary_path:
+        print(f"🔹 Custom Chrome Path: {chrome_binary_path}")
+        
+        # Check if Chrome binary exists
+        if os.path.exists(chrome_binary_path):
+            print(f"✅ Chrome binary found at {chrome_binary_path}")
+        else:
+            print(f"❌ Chrome binary NOT found at {chrome_binary_path}")
+            # List what's actually there
+            parent_dir = os.path.dirname(chrome_binary_path)
+            if os.path.exists(parent_dir):
+                print(f"📂 Contents of {parent_dir}:")
+                print(os.listdir(parent_dir))
+        
         chrome_options.binary_location = chrome_binary_path
-        print(f"🔹 Using Custom Chrome Path: {chrome_binary_path}")
 
         try:
             result = subprocess.run([chrome_binary_path, "--version"], 
                                   capture_output=True, text=True, timeout=10)
             version_output = result.stdout.strip()
-            print(f"🔹 Detected Chrome Version: {version_output}")
+            print(f"🔹 Chrome Version: {version_output}")
             
             chrome_version = version_output.split()[-1]
             service = Service(ChromeDriverManager(driver_version=chrome_version).install())
-            print("✅ ChromeDriver installed successfully!")
+            print("✅ ChromeDriver installed!")
         except Exception as e:
             print(f"⚠️ Version Detection Failed: {e}")
             service = Service(ChromeDriverManager().install())
     else:
-        print("🔹 Using local ChromeDriver")
+        print("🔹 Using local ChromeDriver (no CHROME_BIN set)")
         service = Service(ChromeDriverManager().install())
-        
-    driver = webdriver.Chrome(service=service, options=chrome_options)
-    print("✅ Chrome driver initialized successfully!")
-    return driver
+    
+    try:
+        driver = webdriver.Chrome(service=service, options=chrome_options)
+        print("✅ Chrome driver initialized successfully!")
+        return driver
+    except Exception as e:
+        print(f"❌ Failed to initialize Chrome driver: {e}")
+        import traceback
+        traceback.print_exc()
+        raise
 
 # ⭐ CRITICAL FIX: Lazy Driver Initialization
 _driver = None
@@ -173,18 +195,51 @@ def parse_result_page(soup, usn):
 def home(): 
     return render_template('index.html')
 
+# Debug route
+@app.route('/debug')
+def debug():
+    """Debug route to check Chrome installation"""
+    chrome_bin = os.environ.get('CHROME_BIN', 'Not set')
+    debug_info = {
+        'chrome_bin_env': chrome_bin,
+        'chrome_exists': os.path.exists(chrome_bin) if chrome_bin != 'Not set' else False,
+    }
+    
+    if chrome_bin != 'Not set':
+        parent_dir = os.path.dirname(chrome_bin)
+        if os.path.exists(parent_dir):
+            debug_info['parent_dir_contents'] = os.listdir(parent_dir)
+    
+    try:
+        driver = get_driver()
+        driver.get("https://www.google.com")
+        debug_info['driver_status'] = 'SUCCESS'
+        debug_info['page_title'] = driver.title
+    except Exception as e:
+        debug_info['driver_status'] = 'FAILED'
+        debug_info['error'] = str(e)
+        import traceback
+        debug_info['traceback'] = traceback.format_exc()
+    
+    return jsonify(debug_info)
+
 @app.route('/get_captcha')
 def get_captcha():
     try:
-        driver = get_driver()  # ⭐ Use get_driver() instead of global
+        print("📸 Attempting to fetch captcha...")
+        driver = get_driver()
         driver.get("https://results.vtu.ac.in/D25J26Ecbcs/index.php")
-        wait = WebDriverWait(driver, 10)
+        wait = WebDriverWait(driver, 15)
         img = wait.until(EC.presence_of_element_located((By.XPATH, "//img[contains(@src, 'captcha')]")))
+        time.sleep(0.5)
+        print("✅ Captcha screenshot captured")
         return img.screenshot_as_png, 200, {'Content-Type': 'image/png'}
     except Exception as e:
         print(f"❌ Captcha error: {e}")
-        reset_driver()  # Reset on error
-        return "Error loading captcha", 500
+        import traceback
+        traceback.print_exc()
+        reset_driver()
+        return "Captcha loading failed. Check logs.", 500
 
 @app.route('/fetch_result', methods=['POST'])
 def fetch_result():
@@ -195,7 +250,7 @@ def fetch_result():
         return jsonify({'status': 'error', 'message': 'Invalid USN format'})
     
     try:
-        driver = get_driver()  # ⭐ Use get_driver() instead of global
+        driver = get_driver()
         
         if "results.vtu.ac.in" not in driver.current_url:
             return jsonify({'status': 'error', 'message': 'Session timeout. Reload Captcha.'})

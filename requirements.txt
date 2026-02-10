@@ -6,3 +6,4 @@ dnspython
 gunicorn
 python-dotenv
 webdriver-manager
+Pillow

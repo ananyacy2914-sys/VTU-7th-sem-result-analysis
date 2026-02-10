@@ -3,3 +3,4 @@ selenium
 beautifulsoup4
 pymongo
 gunicorn
+python-dotenv

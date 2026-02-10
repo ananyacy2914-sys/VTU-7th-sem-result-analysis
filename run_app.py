@@ -33,47 +33,63 @@ try:
 except Exception as e:
     print(f"❌ DB Error: {e}")
 
-# --- BROWSER SETUP (ROBUST FIX) ---
+# --- BROWSER SETUP (FIXED FOR RENDER) ---
 def init_driver():
+    """Initialize Chrome driver with proper configuration"""
     chrome_options = Options()
     chrome_options.add_argument("--headless=new") 
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--window-size=1920,1080")
     
     chrome_binary_path = os.environ.get('CHROME_BIN')
     
-    # 1. Set Binary Path
     if chrome_binary_path:
         chrome_options.binary_location = chrome_binary_path
         print(f"🔹 Using Custom Chrome Path: {chrome_binary_path}")
 
-        # 2. DETECT CHROME VERSION MANUALLY
-        # (This fixes the 'NoSuchDriverException' on Render)
         try:
-            # Run the chrome binary with --version flag to get the string e.g. "Google Chrome 120.0.6099.109"
-            result = subprocess.run([chrome_binary_path, "--version"], capture_output=True, text=True)
+            result = subprocess.run([chrome_binary_path, "--version"], 
+                                  capture_output=True, text=True, timeout=10)
             version_output = result.stdout.strip()
-            print(f"🔹 Detected Chrome Version Output: {version_output}")
+            print(f"🔹 Detected Chrome Version: {version_output}")
             
-            # Extract just the version number (e.g., "120.0.6099.109")
             chrome_version = version_output.split()[-1]
-            
-            # Install the EXACT matching driver
             service = Service(ChromeDriverManager(driver_version=chrome_version).install())
-            print("✅ Driver installed successfully!")
+            print("✅ ChromeDriver installed successfully!")
         except Exception as e:
             print(f"⚠️ Version Detection Failed: {e}")
-            # Fallback to default install if detection fails
             service = Service(ChromeDriverManager().install())
     else:
-        # Local development fallback
+        print("🔹 Using local ChromeDriver")
         service = Service(ChromeDriverManager().install())
         
     driver = webdriver.Chrome(service=service, options=chrome_options)
+    print("✅ Chrome driver initialized successfully!")
     return driver
 
-# Global Driver Instance
-driver = init_driver()
+# ⭐ CRITICAL FIX: Lazy Driver Initialization
+_driver = None
+
+def get_driver():
+    """Get or create the global driver instance (lazy initialization)"""
+    global _driver
+    if _driver is None:
+        print("🚀 Initializing Chrome driver on first request...")
+        _driver = init_driver()
+    return _driver
+
+def reset_driver():
+    """Reset the driver in case of errors"""
+    global _driver
+    try:
+        if _driver is not None:
+            print("🔄 Resetting driver...")
+            _driver.quit()
+    except Exception as e:
+        print(f"⚠️ Error quitting driver: {e}")
+    _driver = None
 
 # --- HELPERS ---
 def get_credits_2022_cs_7th(sub_code):
@@ -97,7 +113,8 @@ def calculate_grade_point(marks):
         if m >= 50: return 5
         if m >= 40: return 4
         return 0
-    except: return 0
+    except: 
+        return 0
 
 def parse_result_page(soup, usn):
     data = {'usn': usn, 'name': "Unknown", 'sgpa': "0.00", 'total_marks': 0, 'class_result': "N/A", 'subjects': []}
@@ -109,7 +126,9 @@ def parse_result_page(soup, usn):
                 break
         
         div_rows = soup.find_all('div', class_='divTableRow')
-        total_credits = 0; total_gp = 0; running_total = 0
+        total_credits = 0
+        total_gp = 0
+        running_total = 0
         
         for row in div_rows[1:]:
             cells = row.find_all('div', class_='divTableCell')
@@ -136,62 +155,77 @@ def parse_result_page(soup, usn):
             perc = (running_total / 700) * 100 
             data['percentage'] = "{:.2f}%".format(perc)
             
-            if perc >= 70: data['class_result'] = "First Class with Distinction"
-            elif perc >= 60: data['class_result'] = "First Class"
-            elif perc >= 50: data['class_result'] = "Second Class"
-            else: data['class_result'] = "Fail"
+            if perc >= 70: 
+                data['class_result'] = "First Class with Distinction"
+            elif perc >= 60: 
+                data['class_result'] = "First Class"
+            elif perc >= 50: 
+                data['class_result'] = "Second Class"
+            else: 
+                data['class_result'] = "Fail"
             
-    except: pass
+    except Exception as e:
+        print(f"⚠️ Parsing error: {e}")
     return data
 
 # --- ROUTES ---
 @app.route('/')
-def home(): return render_template('index.html')
+def home(): 
+    return render_template('index.html')
 
 @app.route('/get_captcha')
 def get_captcha():
-    global driver
     try:
+        driver = get_driver()  # ⭐ Use get_driver() instead of global
         driver.get("https://results.vtu.ac.in/D25J26Ecbcs/index.php")
         wait = WebDriverWait(driver, 10)
         img = wait.until(EC.presence_of_element_located((By.XPATH, "//img[contains(@src, 'captcha')]")))
         return img.screenshot_as_png, 200, {'Content-Type': 'image/png'}
-    except:
-        try: driver.quit()
-        except: pass
-        driver = init_driver()
-        return "Error", 500
+    except Exception as e:
+        print(f"❌ Captcha error: {e}")
+        reset_driver()  # Reset on error
+        return "Error loading captcha", 500
 
 @app.route('/fetch_result', methods=['POST'])
 def fetch_result():
-    global driver
     usn = request.form['usn'].strip().upper()
     captcha = request.form['captcha'].strip()
     
     if not (usn.startswith('1DB21CS') or usn.startswith('1DB22CS')):
-        return jsonify({'status': 'error', 'message': 'Invalid USN'})
+        return jsonify({'status': 'error', 'message': 'Invalid USN format'})
     
     try:
+        driver = get_driver()  # ⭐ Use get_driver() instead of global
+        
         if "results.vtu.ac.in" not in driver.current_url:
-             return jsonify({'status': 'error', 'message': 'Session timeout. Reload Captcha.'})
+            return jsonify({'status': 'error', 'message': 'Session timeout. Reload Captcha.'})
 
         driver.find_element(By.NAME, "lns").send_keys(usn)
         driver.find_element(By.NAME, "captchacode").send_keys(captcha)
         
-        try: driver.find_element(By.XPATH, "//input[@type='submit']").click()
+        try: 
+            driver.find_element(By.XPATH, "//input[@type='submit']").click()
         except UnexpectedAlertPresentException:
-            alert = driver.switch_to.alert; msg = alert.text; alert.accept(); driver.refresh()
+            alert = driver.switch_to.alert
+            msg = alert.text
+            alert.accept()
+            driver.refresh()
             return jsonify({'status': 'error', 'message': f"Alert: {msg}"})
 
         time.sleep(1.5)
         
         try:
             WebDriverWait(driver, 3).until(EC.alert_is_present())
-            alert = driver.switch_to.alert; msg = alert.text; alert.accept(); driver.refresh()
+            alert = driver.switch_to.alert
+            msg = alert.text
+            alert.accept()
+            driver.refresh()
             return jsonify({'status': 'error', 'message': f"VTU Says: {msg}"})
-        except: pass
+        except: 
+            pass
 
-        if len(driver.window_handles) > 1: driver.switch_to.window(driver.window_handles[-1])
+        if len(driver.window_handles) > 1: 
+            driver.switch_to.window(driver.window_handles[-1])
         
         soup = BeautifulSoup(driver.page_source, 'html.parser')
         student_data = parse_result_page(soup, usn)
@@ -203,17 +237,27 @@ def fetch_result():
             rank = students_col.count_documents({'total_marks': {'$gt': my_marks}}) + 1
             student_data['rank'] = rank
 
-            if len(driver.window_handles) > 1: driver.close(); driver.switch_to.window(driver.window_handles[0])
-            try: driver.find_element(By.NAME, "lns").clear(); driver.find_element(By.NAME, "captchacode").clear()
-            except: pass
+            if len(driver.window_handles) > 1: 
+                driver.close()
+                driver.switch_to.window(driver.window_handles[0])
+            
+            try: 
+                driver.find_element(By.NAME, "lns").clear()
+                driver.find_element(By.NAME, "captchacode").clear()
+            except: 
+                pass
 
             return jsonify({'status': 'success', 'data': student_data})
         
-        return jsonify({'status': 'error', 'message': 'Parsing failed.'})
+        return jsonify({'status': 'error', 'message': 'Failed to parse result.'})
 
     except Exception as e:
-        try: driver.get("https://results.vtu.ac.in/D25J26Ecbcs/index.php")
-        except: pass
+        print(f"❌ Fetch error: {e}")
+        try: 
+            driver = get_driver()
+            driver.get("https://results.vtu.ac.in/D25J26Ecbcs/index.php")
+        except: 
+            reset_driver()
         return jsonify({'status': 'error', 'message': str(e)})
 
 @app.route('/leaderboard')
@@ -225,8 +269,10 @@ def leaderboard():
         data = list(students_col.find({}, {'_id': 0}))
 
         def get_sort_val(s, k):
-            try: return float(s.get(k, 0))
-            except: return 0.0
+            try: 
+                return float(s.get(k, 0))
+            except: 
+                return 0.0
 
         reverse_order = (order == 'desc')
         if sort_by == 'sgpa':
@@ -234,10 +280,12 @@ def leaderboard():
         else:
             data.sort(key=lambda x: get_sort_val(x, 'total_marks'), reverse=reverse_order)
 
-        for i, s in enumerate(data): s['rank'] = i + 1
+        for i, s in enumerate(data): 
+            s['rank'] = i + 1
         
         return jsonify({'status': 'success', 'data': data})
     except Exception as e:
+        print(f"❌ Leaderboard error: {e}")
         return jsonify({'status': 'error', 'message': str(e)})
 
 if __name__ == '__main__':

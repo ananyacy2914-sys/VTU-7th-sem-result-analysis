@@ -3,23 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VTU 7th Sem Result 2026</title>
+    <title>VTU 7th Sem Result Portal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; background: #5865F2; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); }
         .glass-panel { background: rgba(255, 255, 255, 0.98); border-radius: 1rem; box-shadow: 0 10px 40px -10px rgba(0,0,0,0.2); }
-        
-        /* Table Styles */
-        .table-header { background-color: #1e293b; color: #ffffff; }
-        .rank-1 { color: #d97706; font-size: 1.2rem; } /* Gold */
-        .rank-2 { color: #64748b; font-size: 1.1rem; } /* Silver */
-        .rank-3 { color: #b45309; font-size: 1.1rem; } /* Bronze */
-        
-        /* Status Colors */
-        .status-P { color: #16a34a; font-weight: 700; background: #dcfce7; padding: 2px 8px; border-radius: 4px; }
-        .status-F { color: #dc2626; font-weight: 700; background: #fee2e2; padding: 2px 8px; border-radius: 4px; }
+        .rank-1 { color: #d97706; font-size: 1.2rem; } 
+        .rank-2 { color: #64748b; font-size: 1.1rem; } 
+        .rank-3 { color: #b45309; font-size: 1.1rem; } 
+        .status-P { color: #16a34a; background: #dcfce7; padding: 2px 8px; border-radius: 4px; font-weight: 700; }
+        .status-F { color: #dc2626; background: #fee2e2; padding: 2px 8px; border-radius: 4px; font-weight: 700; }
+        .tab-active { background-color: white !important; color: #4f46e5 !important; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .tab-inactive { color: white; opacity: 0.9; }
+        .tab-inactive:hover { background-color: rgba(255,255,255,0.1); }
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center py-8 px-4 text-gray-800">
@@ -30,137 +28,170 @@
     </div>
 
     <div class="flex bg-white/20 p-1.5 rounded-full backdrop-blur-md border border-white/30 shadow-lg mb-8">
-        <button onclick="switchView('home')" id="nav-home" class="px-6 py-2 rounded-full font-bold text-sm transition-all bg-white text-indigo-600 shadow-sm">
+        <button onclick="switchView('home')" id="btn-home" class="px-6 py-2 rounded-full font-bold text-sm transition-all tab-active">
             🔍 Check Result
         </button>
-        <button onclick="switchView('leaderboard')" id="nav-lead" class="px-6 py-2 rounded-full font-bold text-sm text-white hover:bg-white/10 transition-all">
+        <button onclick="switchView('leaderboard')" id="btn-lead" class="px-6 py-2 rounded-full font-bold text-sm transition-all tab-inactive">
             🏆 Leaderboard
+        </button>
+        <button onclick="switchView('analysis')" id="btn-anal" class="px-6 py-2 rounded-full font-bold text-sm transition-all tab-inactive">
+            📊 Analysis
         </button>
     </div>
 
     <div id="main-container" class="w-full max-w-6xl">
         
         <div id="view-home" class="flex flex-col md:flex-row gap-6 items-start justify-center">
-            
-            <div class="w-full md:w-1/3 glass-panel p-8 animate-fade-in-up">
-                <div class="mb-6">
-                    <h2 class="text-xl font-bold text-gray-800 border-b pb-2">Student Details</h2>
-                </div>
-                
+            <div class="w-full md:w-1/3 glass-panel p-8">
+                <h2 class="text-xl font-bold text-gray-800 border-b pb-2 mb-6">Student Details</h2>
                 <form id="resultForm" class="space-y-5">
                     <div>
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">USN</label>
-                        <input type="text" name="usn" placeholder="1DB22CS & 1DB23CS only" class="w-full bg-gray-50 border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono font-bold text-gray-700 uppercase" required>
+                        <input type="text" name="usn" placeholder="1DB21CS..." class="w-full bg-gray-50 border border-gray-300 p-3 rounded-lg font-mono font-bold uppercase" required>
                     </div>
-                    
                     <div>
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Captcha</label>
                         <div class="flex gap-2">
-                            <input type="text" name="captcha" placeholder="Code" class="flex-1 min-w-0 bg-gray-50 border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono font-bold text-gray-700" required>
-                            <img id="captchaImg" src="/get_captcha" onclick="refreshCaptcha()" class="w-28 h-[50px] object-fill rounded border border-gray-300 cursor-pointer hover:opacity-80 shadow-sm bg-white" title="Click to Refresh">
+                            <input type="text" name="captcha" placeholder="Code" class="flex-1 bg-gray-50 border border-gray-300 p-3 rounded-lg font-mono font-bold" required>
+                            <img id="captchaImg" src="/get_captcha" onclick="refreshCaptcha()" class="w-28 h-[50px] object-fill rounded cursor-pointer border bg-white">
                         </div>
                     </div>
-
-                    <button type="submit" id="subBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white p-3.5 rounded-lg font-bold shadow-lg transition-all transform active:scale-95">
+                    <button type="submit" id="subBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white p-3.5 rounded-lg font-bold shadow-lg transition-all">
                         GET RESULT
                     </button>
                 </form>
             </div>
 
-            <div id="result-card" class="hidden w-full md:w-2/3 glass-panel p-8 relative min-h-[450px] animate-fade-in-up">
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-gray-200 pb-5 mb-6">
+            <div id="result-card" class="hidden w-full md:w-2/3 glass-panel p-8 relative">
+                <div class="flex justify-between items-center border-b pb-4 mb-4">
                     <div>
-                        <h2 id="res-name" class="text-3xl font-black text-gray-800 tracking-tight">STUDENT NAME</h2>
-                        <span id="res-usn" class="font-mono text-gray-500 font-medium">1DB21CS000</span>
+                        <h2 id="res-name" class="text-2xl font-black text-gray-800">NAME</h2>
+                        <span id="res-usn" class="font-mono text-gray-500 font-medium">USN</span>
                     </div>
-                    <span id="res-class" class="mt-2 md:mt-0 bg-emerald-100 text-emerald-800 text-xs font-bold px-4 py-1.5 rounded-full border border-emerald-200 uppercase tracking-wide">
-                        Distinction
-                    </span>
+                    <span id="res-class" class="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full border border-emerald-200">PASS</span>
                 </div>
-
-                <div class="grid grid-cols-3 gap-4 mb-8">
-                    <div class="bg-emerald-500 text-white p-4 rounded-xl text-center shadow-lg transform hover:-translate-y-1 transition">
-                        <div class="text-xs font-bold opacity-80 uppercase tracking-widest">SGPA</div>
-                        <div id="res-sgpa" class="text-4xl font-black mt-1">0.00</div>
-                        <div id="res-perc" class="text-xs font-medium mt-1 opacity-90">0%</div>
+                
+                <div class="grid grid-cols-3 gap-4 mb-6">
+                    <div class="bg-emerald-500 text-white p-3 rounded-xl text-center shadow">
+                        <div class="text-xs font-bold opacity-75">SGPA</div>
+                        <div id="res-sgpa" class="text-3xl font-black">0.00</div>
                     </div>
-                    <div class="bg-blue-600 text-white p-4 rounded-xl text-center shadow-lg transform hover:-translate-y-1 transition">
-                        <div class="text-xs font-bold opacity-80 uppercase tracking-widest">Total Marks</div>
-                        <div id="res-marks" class="text-4xl font-black mt-1">0</div>
-                        <div class="text-xs opacity-90 mt-1">out of 700</div>
+                    <div class="bg-blue-600 text-white p-3 rounded-xl text-center shadow">
+                        <div class="text-xs font-bold opacity-75">MARKS</div>
+                        <div id="res-marks" class="text-3xl font-black">0</div>
                     </div>
-                    <div class="bg-amber-500 text-white p-4 rounded-xl text-center shadow-lg transform hover:-translate-y-1 transition">
-                        <div class="text-xs font-bold opacity-80 uppercase tracking-widest">Batch Rank</div>
-                        <div id="res-rank" class="text-4xl font-black mt-1">#0</div>
-                        <div class="text-xs opacity-90 mt-1">Class Position</div>
+                    <div class="bg-amber-500 text-white p-3 rounded-xl text-center shadow">
+                        <div class="text-xs font-bold opacity-75">RANK</div>
+                        <div id="res-rank" class="text-3xl font-black">#0</div>
                     </div>
                 </div>
 
                 <div class="overflow-hidden rounded-lg border border-gray-200">
                     <table class="w-full text-sm">
-                        <thead class="bg-gray-50 text-gray-500 font-bold uppercase text-xs border-b border-gray-200">
+                        <thead class="bg-gray-50 text-gray-500 font-bold uppercase text-xs">
                             <tr>
-                                <th class="p-3 text-left">Code</th>
-                                <th class="p-3 text-left">Subject Name</th>
+                                <th class="p-3 text-left">Subject</th>
                                 <th class="p-3 text-center">Marks</th>
                                 <th class="p-3 text-right">Result</th>
                             </tr>
                         </thead>
-                        <tbody id="subject-body" class="divide-y divide-gray-100 bg-white">
-                            </tbody>
+                        <tbody id="subject-body" class="divide-y divide-gray-100 bg-white"></tbody>
                     </table>
                 </div>
             </div>
-
-            <div id="placeholder-card" class="w-full md:w-2/3 glass-panel p-12 flex flex-col items-center justify-center text-center text-gray-400 min-h-[450px]">
-                <div class="bg-gray-50 p-6 rounded-full mb-4">
-                    <svg class="w-12 h-12 text-indigo-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                </div>
+            
+            <div id="placeholder-card" class="w-full md:w-2/3 glass-panel p-12 flex flex-col items-center justify-center text-center text-gray-400 min-h-[400px]">
+                <div class="bg-gray-50 p-6 rounded-full mb-4">📄</div>
                 <h3 class="font-bold text-xl text-gray-600">Ready to Fetch</h3>
-                <p class="text-sm mt-1">Enter USN and Captcha to view detailed scorecard</p>
+                <p class="text-sm">Enter details to view result</p>
             </div>
         </div>
 
-        <div id="view-leaderboard" class="hidden mt-4">
-            <div class="bg-white rounded-xl shadow-2xl overflow-hidden max-w-6xl mx-auto">
-                
-                <div class="p-8 text-center bg-white border-b border-gray-100">
-                    <h2 class="text-2xl font-black text-amber-500 tracking-tight flex items-center justify-center gap-2">
-                        <span>👑</span> Top Performers
-                    </h2>
-                    <p class="text-gray-400 text-xs uppercase tracking-widest mt-1">Computer Science Department</p>
+        <div id="view-leaderboard" class="hidden">
+            <div class="bg-white rounded-xl shadow-2xl overflow-hidden">
+                <div class="p-6 border-b flex justify-between items-center bg-gray-50">
+                    <h2 class="text-xl font-black text-gray-700">🏆 Class Leaderboard</h2>
+                    <input type="text" id="lbSearch" onkeyup="filterLeaderboard()" placeholder="Search Name..." class="border p-2 rounded text-sm w-64">
                 </div>
-
-                <div class="bg-gray-50 p-4 border-b border-gray-200 flex justify-between items-center gap-4">
-                    <div class="relative flex-1 max-w-md">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                        </div>
-                        <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Search by USN or Name..." class="w-full pl-10 pr-4 py-2 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm">
-                    </div>
-                    <button onclick="document.getElementById('searchInput').value=''; filterTable()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded text-sm font-bold transition shadow-sm">
-                        × Clear
-                    </button>
-                </div>
-
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead class="table-header uppercase text-xs font-bold tracking-wider">
+                    <table class="w-full text-left">
+                        <thead class="bg-gray-800 text-white text-xs uppercase font-bold">
                             <tr>
-                                <th class="p-4 text-center w-24">Rank</th>
-                                <th class="p-4 w-40">USN</th>
+                                <th class="p-4 w-16 text-center">Rank</th>
+                                <th class="p-4">USN</th>
                                 <th class="p-4">Name</th>
-                                <th class="p-4 text-center cursor-pointer hover:bg-slate-700 transition" onclick="toggleSort('marks')">
-                                    Marks <span id="icon-marks">▼</span>
-                                </th>
-                                <th class="p-4 text-center cursor-pointer hover:bg-slate-700 transition" onclick="toggleSort('sgpa')">
-                                    SGPA <span id="icon-sgpa">▼</span>
-                                </th>
-                                <th class="p-4 text-center text-amber-400">Percentage</th>
+                                <th class="p-4 text-center cursor-pointer" onclick="loadLeaderboard('marks')">Marks ↕</th>
+                                <th class="p-4 text-center cursor-pointer" onclick="loadLeaderboard('sgpa')">SGPA ↕</th>
+                                <th class="p-4 text-center">Result</th>
                             </tr>
                         </thead>
-                        <tbody id="lb-body" class="text-sm font-medium text-gray-700 bg-white divide-y divide-gray-100">
-                            </tbody>
+                        <tbody id="lb-body" class="text-sm font-medium text-gray-700 divide-y"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-analysis" class="hidden">
+            <div class="bg-white rounded-xl shadow-2xl overflow-hidden p-6">
+                
+                <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 border-b pb-6">
+                    <h2 class="text-2xl font-black text-red-500 flex items-center gap-2">
+                        📊 Performance Analysis
+                    </h2>
+                    <div class="flex gap-2 w-full md:w-auto">
+                        <select id="anal-category" class="border-2 border-indigo-100 p-2.5 rounded-lg font-bold text-gray-700 text-sm focus:border-indigo-500 outline-none w-full md:w-80">
+                            <optgroup label="General Analysis">
+                                <option value="overall_fail">Overall Failures (All Subjects)</option>
+                                <option value="fcd">First Class with Distinction (>=70%)</option>
+                                <option value="fc">First Class (60% - 69%)</option>
+                                <option value="sc">Second Class (50% - 59%)</option>
+                            </optgroup>
+                            <optgroup label="Subject Failure Analysis">
+                                <option value="BCS701">BCS701 - Advanced Computer Architecture</option>
+                                <option value="BCS702">BCS702 - Cloud Computing</option>
+                                <option value="BCS703">BCS703 - Information & Network Security</option>
+                                <option value="BCS714">BCS714 - Parallel Programming</option>
+                                <option value="BCS755">BCS755 - Deep Learning</option>
+                            </optgroup>
+                        </select>
+                        <button onclick="runAnalysis()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-bold shadow transition">
+                            Analyze
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-blue-500 text-white p-6 rounded-xl shadow-lg text-center">
+                        <div class="text-sm font-bold opacity-80 uppercase">Total Found</div>
+                        <div id="stat-total" class="text-5xl font-black mt-2">-</div>
+                    </div>
+                    <div class="bg-emerald-500 text-white p-6 rounded-xl shadow-lg text-center">
+                        <div class="text-sm font-bold opacity-80 uppercase">Passed</div>
+                        <div id="stat-pass" class="text-5xl font-black mt-2">-</div>
+                    </div>
+                    <div class="bg-red-500 text-white p-6 rounded-xl shadow-lg text-center">
+                        <div class="text-sm font-bold opacity-80 uppercase">Failed</div>
+                        <div id="stat-fail" class="text-5xl font-black mt-2">-</div>
+                    </div>
+                </div>
+
+                <div class="overflow-hidden rounded-lg border border-gray-200">
+                    <div class="bg-red-50 p-3 border-b border-red-100 font-bold text-red-700 text-sm flex justify-between">
+                        <span>📄 Student List</span>
+                        <span id="list-count" class="bg-white px-2 rounded text-xs border py-0.5">0 Students</span>
+                    </div>
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-gray-100 text-gray-600 font-bold uppercase text-xs border-b">
+                            <tr>
+                                <th class="p-3">USN</th>
+                                <th class="p-3">Name</th>
+                                <th class="p-3">Data / Marks</th>
+                                <th class="p-3 text-right">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="anal-body" class="bg-white divide-y divide-gray-100">
+                            <tr><td colspan="4" class="p-8 text-center text-gray-400">Select a category and click Analyze</td></tr>
+                        </tbody>
                     </table>
                 </div>
             </div>
@@ -168,144 +199,135 @@
 
     </div>
 
-    <div class="mt-12 text-indigo-200 text-xs font-medium">
-        Designed & Developed by Astitva & Ananya C Y
-    </div>
+    <div class="mt-12 text-indigo-200 text-xs font-medium">Designed & Developed by Astitva & Ananya</div>
 
     <script>
-        let sortConfig = { field: 'marks', order: 'desc' };
-        let allData = []; // Store data for client-side search filtering
-
+        // --- VIEW SWITCHER ---
         function switchView(view) {
-            if(view === 'home') {
-                $('#view-home').removeClass('hidden').addClass('flex');
-                $('#view-leaderboard').addClass('hidden');
-                
-                // Update Pill Styles
-                $('#nav-home').addClass('bg-white text-indigo-600 shadow-sm').removeClass('text-white hover:bg-white/10');
-                $('#nav-lead').removeClass('bg-white text-indigo-600 shadow-sm').addClass('text-white hover:bg-white/10');
-            } else {
-                $('#view-home').addClass('hidden').removeClass('flex');
-                $('#view-leaderboard').removeClass('hidden');
-                
-                // Update Pill Styles
-                $('#nav-lead').addClass('bg-white text-indigo-600 shadow-sm').removeClass('text-white hover:bg-white/10');
-                $('#nav-home').removeClass('bg-white text-indigo-600 shadow-sm').addClass('text-white hover:bg-white/10');
-                
-                loadLeaderboard();
-            }
+            ['home', 'leaderboard', 'analysis'].forEach(v => {
+                $(`#view-${v}`).addClass('hidden');
+                $(`#btn-${v.substring(0,4)}`).removeClass('tab-active').addClass('tab-inactive');
+            });
+            $(`#view-${view}`).removeClass('hidden');
+            let btnId = view === 'home' ? 'btn-home' : (view === 'leaderboard' ? 'btn-lead' : 'btn-anal');
+            $(`#${btnId}`).addClass('tab-active').removeClass('tab-inactive');
+            
+            if(view === 'leaderboard') loadLeaderboard();
         }
 
-        function refreshCaptcha() {
-            $('#captchaImg').attr('src', '/get_captcha?' + new Date().getTime());
-        }
+        // --- HOME LOGIC ---
+        function refreshCaptcha() { $('#captchaImg').attr('src', '/get_captcha?' + Date.now()); }
 
         $('#resultForm').submit(function(e) {
             e.preventDefault();
             const btn = $('#subBtn');
-            btn.text('CONNECTING...').prop('disabled', true).addClass('opacity-75 cursor-not-allowed');
+            btn.text('FETCHING...').prop('disabled', true).addClass('opacity-75');
 
             $.post('/fetch_result', $(this).serialize(), function(r) {
-                btn.text('GET RESULT').prop('disabled', false).removeClass('opacity-75 cursor-not-allowed');
-                
+                btn.text('GET RESULT').prop('disabled', false).removeClass('opacity-75');
                 if(r.status === 'success') {
                     const d = r.data;
                     $('#res-name').text(d.name);
-                    $('#res-usn').text(d.usn); // Added USN display
+                    $('#res-usn').text(d.usn);
                     $('#res-class').text(d.class_result);
                     $('#res-sgpa').text(d.sgpa);
-                    $('#res-perc').text(d.percentage);
                     $('#res-marks').text(d.total_marks);
                     $('#res-rank').text('#' + d.rank);
 
                     let rows = '';
                     d.subjects.forEach(s => {
-                        let statusHTML = s.result === 'P' 
-                            ? '<span class="status-P">P</span>' 
-                            : '<span class="status-F">F</span>';
-                        
-                        rows += `
-                            <tr class="hover:bg-gray-50 transition">
-                                <td class="p-3 font-mono text-gray-500 font-bold">${s.code}</td>
-                                <td class="p-3 text-gray-800 font-semibold">${s.name}</td>
-                                <td class="p-3 text-center font-bold text-gray-700">${s.total}</td>
-                                <td class="p-3 text-right">${statusHTML}</td>
-                            </tr>`;
+                        let color = s.result === 'P' ? 'text-emerald-600' : 'text-red-600';
+                        rows += `<tr class="hover:bg-gray-50">
+                            <td class="p-3 font-mono text-gray-500 font-bold text-xs">${s.code} <span class="text-gray-800 ml-2 text-sm">${s.name}</span></td>
+                            <td class="p-3 text-center font-bold text-gray-700">${s.total}</td>
+                            <td class="p-3 text-right font-bold ${color}">${s.result}</td>
+                        </tr>`;
                     });
                     $('#subject-body').html(rows);
                     $('#placeholder-card').addClass('hidden');
-                    $('#result-card').removeClass('hidden').hide().fadeIn();
+                    $('#result-card').removeClass('hidden');
                     refreshCaptcha();
                 } else {
                     alert(r.message);
-                    if(r.message.includes("Captcha")) refreshCaptcha();
+                    if(r.message.includes('Captcha')) refreshCaptcha();
                 }
             });
         });
 
-        function toggleSort(field) {
-            if (sortConfig.field === field) {
-                sortConfig.order = sortConfig.order === 'desc' ? 'asc' : 'desc';
-            } else {
-                sortConfig.field = field;
-                sortConfig.order = 'desc';
-            }
-            loadLeaderboard();
-        }
-
-        function loadLeaderboard() {
-            $('#lb-body').html('<tr><td colspan="6" class="p-8 text-center text-gray-400 italic">Fetching data from server...</td></tr>');
-            
-            $.get(`/leaderboard?sort=${sortConfig.field}&order=${sortConfig.order}`, function(r) {
-                allData = r.data; // Save for search
-                renderTable(allData);
+        // --- LEADERBOARD LOGIC ---
+        let lbData = [];
+        function loadLeaderboard(sort='marks') {
+            $.get(`/leaderboard?sort=${sort}`, function(r) {
+                lbData = r.data;
+                renderLB(lbData);
             });
         }
-
-        function renderTable(data) {
-            // Update Sort Icons
-            $('#icon-marks').text(sortConfig.field === 'marks' ? (sortConfig.order === 'asc' ? '▲' : '▼') : '▼').css('opacity', sortConfig.field === 'marks' ? 1 : 0.3);
-            $('#icon-sgpa').text(sortConfig.field === 'sgpa' ? (sortConfig.order === 'asc' ? '▲' : '▼') : '▼').css('opacity', sortConfig.field === 'sgpa' ? 1 : 0.3);
-
+        function renderLB(data) {
             let html = '';
-            if(data.length === 0) {
-                html = '<tr><td colspan="6" class="p-8 text-center text-gray-400">No records found.</td></tr>';
-            } else {
-                data.forEach(s => {
-                    let rankDisplay = `#${s.rank}`;
-                    let rowClass = "hover:bg-slate-50 transition border-b border-gray-100";
-                    
-                    // Top 3 Styling
-                    if(s.rank === 1) rankDisplay = '<span class="rank-1">🥇</span>';
-                    if(s.rank === 2) rankDisplay = '<span class="rank-2">🥈</span>';
-                    if(s.rank === 3) rankDisplay = '<span class="rank-3">🥉</span>';
-                    if(s.rank <= 3) rowClass += " bg-yellow-50/30";
-
-                    // Column Highlighting based on sort
-                    let markClass = sortConfig.field === 'marks' ? "text-blue-700 font-black" : "text-blue-600 font-bold";
-                    let sgpaClass = sortConfig.field === 'sgpa' ? "text-emerald-700 font-black" : "text-emerald-600 font-bold";
-
-                    html += `
-                        <tr class="${rowClass}">
-                            <td class="p-4 text-center font-bold text-gray-600">${rankDisplay}</td>
-                            <td class="p-4 font-mono font-bold text-gray-800">${s.usn}</td>
-                            <td class="p-4 font-bold text-gray-700 uppercase">${s.name}</td>
-                            <td class="p-4 text-center ${markClass}">${s.total_marks}</td>
-                            <td class="p-4 text-center ${sgpaClass}">${s.sgpa}</td>
-                            <td class="p-4 text-center font-bold text-amber-500">${s.percentage}</td>
-                        </tr>`;
-                });
-            }
+            data.forEach(s => {
+                let rankIcon = s.rank === 1 ? '🥇' : (s.rank === 2 ? '🥈' : (s.rank === 3 ? '🥉' : `#${s.rank}`));
+                let rowColor = s.rank <= 3 ? 'bg-yellow-50' : '';
+                html += `<tr class="${rowColor} hover:bg-gray-50">
+                    <td class="p-4 text-center font-bold text-gray-600">${rankIcon}</td>
+                    <td class="p-4 font-mono font-bold text-gray-800">${s.usn}</td>
+                    <td class="p-4 font-bold text-gray-700">${s.name}</td>
+                    <td class="p-4 text-center text-blue-600 font-bold">${s.total_marks}</td>
+                    <td class="p-4 text-center text-emerald-600 font-bold">${s.sgpa}</td>
+                    <td class="p-4 text-center font-bold text-xs uppercase ${s.class_result === 'Fail' ? 'text-red-500' : 'text-green-500'}">${s.class_result}</td>
+                </tr>`;
+            });
             $('#lb-body').html(html);
         }
+        function filterLeaderboard() {
+            let term = $('#lbSearch').val().toLowerCase();
+            renderLB(lbData.filter(s => s.name.toLowerCase().includes(term) || s.usn.toLowerCase().includes(term)));
+        }
 
-        function filterTable() {
-            const term = document.getElementById('searchInput').value.toLowerCase();
-            const filtered = allData.filter(item => 
-                item.name.toLowerCase().includes(term) || 
-                item.usn.toLowerCase().includes(term)
-            );
-            renderTable(filtered);
+        // --- ANALYSIS LOGIC (NEW) ---
+        function runAnalysis() {
+            const cat = $('#anal-category').val();
+            const btn = $('button[onclick="runAnalysis()"]');
+            btn.text('Processing...').addClass('opacity-75');
+
+            $.get(`/get_analysis?category=${cat}`, function(r) {
+                btn.text('Analyze').removeClass('opacity-75');
+                
+                if(r.status === 'success') {
+                    // Update Stats
+                    $('#stat-total').text(r.stats.total);
+                    $('#stat-pass').text(r.stats.passed);
+                    $('#stat-fail').text(r.stats.failed);
+                    $('#list-count').text(`${r.students.length} Students`);
+
+                    // Render Table
+                    let html = '';
+                    if(r.students.length === 0) {
+                        html = '<tr><td colspan="4" class="p-6 text-center text-gray-400">No students found in this category.</td></tr>';
+                    } else {
+                        r.students.forEach(s => {
+                            // Determine what to show in "Data" column
+                            let dataInfo = s.percentage || 'N/A';
+                            let statusBadge = '<span class="status-P">PASS</span>';
+                            
+                            // If Subject Failure Mode
+                            if(s.fail_marks) {
+                                dataInfo = `<span class="font-mono text-red-600 font-bold">${s.fail_marks} Marks</span>`;
+                                statusBadge = '<span class="status-F">FAIL</span>';
+                            } else if (s.class_result === 'Fail') {
+                                statusBadge = '<span class="status-F">FAIL</span>';
+                            }
+
+                            html += `<tr class="border-b hover:bg-gray-50">
+                                <td class="p-3 font-mono font-bold text-gray-600">${s.usn}</td>
+                                <td class="p-3 font-bold text-gray-800">${s.name}</td>
+                                <td class="p-3">${dataInfo}</td>
+                                <td class="p-3 text-right">${statusBadge}</td>
+                            </tr>`;
+                        });
+                    }
+                    $('#anal-body').html(html);
+                }
+            });
         }
     </script>
 </body>

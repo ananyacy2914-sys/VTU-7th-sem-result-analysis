@@ -1,16 +1,23 @@
 import os
 import time
+import logging
+import subprocess
 from flask import Flask, render_template, request, jsonify
 from bs4 import BeautifulSoup
 from pymongo import MongoClient
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import UnexpectedAlertPresentException
 from dotenv import load_dotenv
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+
+# Configure Logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -20,57 +27,68 @@ app.secret_key = 'vtu_7th_sem_final_key'
 # --- DATABASE CONNECTION ---
 MONGO_URI = os.getenv('MONGO_URI')
 if not MONGO_URI:
+    # Fallback for local testing
     MONGO_URI = "mongodb+srv://abhi202456_db_user:hlwqDtBfFCpvVweD@cluster0.01ushqs.mongodb.net/vtu_7th_sem_db?retryWrites=true&w=majority&appName=Cluster0"
 
 try:
     client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
     db = client['vtu_7th_sem_db'] 
     students_col = db['students']
-    print("✅ Connected to MongoDB Atlas!")
+    logger.info("✅ Connected to MongoDB Atlas!")
 except Exception as e:
-    print(f"❌ DB Error: {e}")
+    logger.error(f"❌ DB Error: {e}")
 
-# --- SIMPLE CHROME SETUP ---
+# --- BROWSER SETUP ---
 def create_driver():
-    """Create a new Chrome driver instance"""
     chrome_options = Options()
     chrome_options.add_argument("--headless=new")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--disable-gpu")
     
-    # On Render, use system chromium
-    if os.path.exists('/usr/bin/chromium'):
-        chrome_options.binary_location = '/usr/bin/chromium'
-        service = Service('/usr/bin/chromedriver')
-    else:
-        # Local development
-        service = Service()
-    
-    driver = webdriver.Chrome(service=service, options=chrome_options)
-    print("✅ Chrome driver created")
-    return driver
+    # Render Environment Check
+    chrome_bin = os.environ.get('CHROME_BIN')
+    if chrome_bin:
+        chrome_options.binary_location = chrome_bin
+        logger.info(f"🔹 Custom Chrome Path: {chrome_bin}")
 
+        try:
+            # 1. Get Version
+            result = subprocess.run([chrome_bin, "--version"], capture_output=True, text=True)
+            ver = result.stdout.strip().split()[-1]
+            logger.info(f"🔹 Chrome Version: {ver}")
+            
+            # 2. Install Matching Driver
+            service = Service(ChromeDriverManager(driver_version=ver).install())
+        except:
+            # Fallback
+            service = Service(ChromeDriverManager().install())
+    else:
+        service = Service(ChromeDriverManager().install())
+        
+    return webdriver.Chrome(service=service, options=chrome_options)
+
+# Global Driver Management
 _driver = None
 
 def get_driver():
     global _driver
     if _driver is None:
-        _driver = create_driver()
+        try: _driver = create_driver()
+        except: _driver = create_driver() # Retry once
     return _driver
 
 def reset_driver():
     global _driver
-    try:
-        if _driver:
-            _driver.quit()
-    except:
-        pass
+    if _driver:
+        try: _driver.quit()
+        except: pass
     _driver = None
 
 # --- HELPERS ---
 def get_credits_2022_cs_7th(sub_code):
     code = sub_code.upper().strip()
+    # 7th Sem 2022 Scheme Map
     if code.startswith("BCS701"): return 4  
     if code.startswith("BCS702"): return 4  
     if code.startswith("BCS703"): return 4  
@@ -90,8 +108,7 @@ def calculate_grade_point(marks):
         if m >= 50: return 5
         if m >= 40: return 4
         return 0
-    except: 
-        return 0
+    except: return 0
 
 def parse_result_page(soup, usn):
     data = {'usn': usn, 'name': "Unknown", 'sgpa': "0.00", 'total_marks': 0, 'class_result': "N/A", 'subjects': []}
@@ -103,9 +120,7 @@ def parse_result_page(soup, usn):
                 break
         
         div_rows = soup.find_all('div', class_='divTableRow')
-        total_credits = 0
-        total_gp = 0
-        running_total = 0
+        total_credits = 0; total_gp = 0; running_total = 0
         
         for row in div_rows[1:]:
             cells = row.find_all('div', class_='divTableCell')
@@ -132,35 +147,36 @@ def parse_result_page(soup, usn):
             perc = (running_total / 700) * 100 
             data['percentage'] = "{:.2f}%".format(perc)
             
-            if perc >= 70: 
-                data['class_result'] = "First Class with Distinction"
-            elif perc >= 60: 
-                data['class_result'] = "First Class"
-            elif perc >= 50: 
-                data['class_result'] = "Second Class"
-            else: 
-                data['class_result'] = "Fail"
+            # Standard VTU Class Logic
+            if perc >= 70: data['class_result'] = "First Class with Distinction"
+            elif perc >= 60: data['class_result'] = "First Class"
+            elif perc >= 50: data['class_result'] = "Second Class"
+            elif perc >= 40: data['class_result'] = "Pass Class"
+            else: data['class_result'] = "Fail"
             
-    except Exception as e:
-        print(f"⚠️ Parsing error: {e}")
+            # Override if any subject is F
+            for s in data['subjects']:
+                if s['result'] == 'F':
+                    data['class_result'] = "Fail"
+                    break
+            
+    except: pass
     return data
 
 # --- ROUTES ---
 @app.route('/')
-def home(): 
-    return render_template('index.html')
+def home(): return render_template('index.html')
 
 @app.route('/get_captcha')
 def get_captcha():
     try:
         driver = get_driver()
         driver.get("https://results.vtu.ac.in/D25J26Ecbcs/index.php")
-        wait = WebDriverWait(driver, 10)
+        wait = WebDriverWait(driver, 15)
         img = wait.until(EC.presence_of_element_located((By.XPATH, "//img[contains(@src, 'captcha')]")))
-        time.sleep(0.3)
         return img.screenshot_as_png, 200, {'Content-Type': 'image/png'}
     except Exception as e:
-        print(f"❌ Captcha error: {e}")
+        logger.error(f"Captcha Error: {e}")
         reset_driver()
         return "Error", 500
 
@@ -169,41 +185,31 @@ def fetch_result():
     usn = request.form['usn'].strip().upper()
     captcha = request.form['captcha'].strip()
     
-    if not (usn.startswith('1DB21CS') or usn.startswith('1DB22CS')):
-        return jsonify({'status': 'error', 'message': 'Invalid USN format'})
+    if not (usn.startswith('1DB21CS') or usn.startswith('1DB22CS')): # Strict USN filter
+        return jsonify({'status': 'error', 'message': 'Invalid USN. Only 1DB21CS... allowed'})
     
     try:
         driver = get_driver()
-        
         if "results.vtu.ac.in" not in driver.current_url:
-            return jsonify({'status': 'error', 'message': 'Session timeout. Reload Captcha.'})
+             return jsonify({'status': 'error', 'message': 'Session timeout. Reload Captcha.'})
 
         driver.find_element(By.NAME, "lns").send_keys(usn)
         driver.find_element(By.NAME, "captchacode").send_keys(captcha)
         
-        try: 
-            driver.find_element(By.XPATH, "//input[@type='submit']").click()
+        try: driver.find_element(By.XPATH, "//input[@type='submit']").click()
         except UnexpectedAlertPresentException:
-            alert = driver.switch_to.alert
-            msg = alert.text
-            alert.accept()
-            driver.refresh()
+            alert = driver.switch_to.alert; msg = alert.text; alert.accept(); driver.refresh()
             return jsonify({'status': 'error', 'message': f"Alert: {msg}"})
 
         time.sleep(1.5)
         
         try:
             WebDriverWait(driver, 3).until(EC.alert_is_present())
-            alert = driver.switch_to.alert
-            msg = alert.text
-            alert.accept()
-            driver.refresh()
+            alert = driver.switch_to.alert; msg = alert.text; alert.accept(); driver.refresh()
             return jsonify({'status': 'error', 'message': f"VTU Says: {msg}"})
-        except: 
-            pass
+        except: pass
 
-        if len(driver.window_handles) > 1: 
-            driver.switch_to.window(driver.window_handles[-1])
+        if len(driver.window_handles) > 1: driver.switch_to.window(driver.window_handles[-1])
         
         soup = BeautifulSoup(driver.page_source, 'html.parser')
         student_data = parse_result_page(soup, usn)
@@ -215,55 +221,101 @@ def fetch_result():
             rank = students_col.count_documents({'total_marks': {'$gt': my_marks}}) + 1
             student_data['rank'] = rank
 
-            if len(driver.window_handles) > 1: 
-                driver.close()
-                driver.switch_to.window(driver.window_handles[0])
-            
-            try: 
-                driver.find_element(By.NAME, "lns").clear()
-                driver.find_element(By.NAME, "captchacode").clear()
-            except: 
-                pass
+            if len(driver.window_handles) > 1: driver.close(); driver.switch_to.window(driver.window_handles[0])
+            try: driver.find_element(By.NAME, "lns").clear(); driver.find_element(By.NAME, "captchacode").clear()
+            except: pass
 
             return jsonify({'status': 'success', 'data': student_data})
         
-        return jsonify({'status': 'error', 'message': 'Failed to parse result.'})
+        return jsonify({'status': 'error', 'message': 'Parsing failed.'})
 
     except Exception as e:
-        print(f"❌ Fetch error: {e}")
-        try: 
-            driver = get_driver()
-            driver.get("https://results.vtu.ac.in/D25J26Ecbcs/index.php")
-        except: 
-            reset_driver()
-        return jsonify({'status': 'error', 'message': str(e)})
+        logger.error(f"Fetch Error: {e}")
+        reset_driver()
+        return jsonify({'status': 'error', 'message': "Server Error. Try again."})
 
 @app.route('/leaderboard')
 def leaderboard():
     try:
         sort_by = request.args.get('sort', 'marks')
         order = request.args.get('order', 'desc')
-
         data = list(students_col.find({}, {'_id': 0}))
 
         def get_sort_val(s, k):
-            try: 
-                return float(s.get(k, 0))
-            except: 
-                return 0.0
+            try: return float(s.get(k, 0))
+            except: return 0.0
 
         reverse_order = (order == 'desc')
-        if sort_by == 'sgpa':
-            data.sort(key=lambda x: get_sort_val(x, 'sgpa'), reverse=reverse_order)
-        else:
-            data.sort(key=lambda x: get_sort_val(x, 'total_marks'), reverse=reverse_order)
+        if sort_by == 'sgpa': data.sort(key=lambda x: get_sort_val(x, 'sgpa'), reverse=reverse_order)
+        else: data.sort(key=lambda x: get_sort_val(x, 'total_marks'), reverse=reverse_order)
 
-        for i, s in enumerate(data): 
-            s['rank'] = i + 1
-        
+        for i, s in enumerate(data): s['rank'] = i + 1
         return jsonify({'status': 'success', 'data': data})
+    except Exception as e: return jsonify({'status': 'error', 'message': str(e)})
+
+# --- ANALYSIS ROUTE (NEW) ---
+@app.route('/get_analysis')
+def get_analysis():
+    try:
+        category = request.args.get('category', 'overall_fail')
+        
+        # Base Data
+        all_students = list(students_col.find({}, {'_id': 0}))
+        total_students = len(all_students)
+        passed_students = sum(1 for s in all_students if s.get('class_result') != 'Fail')
+        failed_students = total_students - passed_students
+        
+        response_data = []
+        stats = {
+            'total': total_students,
+            'passed': passed_students,
+            'failed': failed_students
+        }
+
+        # 1. Overall Failures
+        if category == 'overall_fail':
+            response_data = [s for s in all_students if s.get('class_result') == 'Fail']
+        
+        # 2. Class Filters
+        elif category == 'fcd':
+            response_data = [s for s in all_students if "Distinction" in s.get('class_result', '')]
+        elif category == 'fc':
+            response_data = [s for s in all_students if s.get('class_result') == 'First Class']
+        elif category == 'sc':
+            response_data = [s for s in all_students if s.get('class_result') == 'Second Class']
+        
+        # 3. Subject-wise Analysis
+        else:
+            # Category acts as subject code here (e.g., "BCS701")
+            subject_code = category
+            subject_failures = []
+            
+            subj_total = 0
+            subj_pass = 0
+            
+            for s in all_students:
+                # Find the specific subject in this student's list
+                subj = next((item for item in s.get('subjects', []) if item['code'] == subject_code), None)
+                if subj:
+                    subj_total += 1
+                    if subj['result'] == 'P':
+                        subj_pass += 1
+                    else:
+                        # Add student to failure list with their marks
+                        s_copy = s.copy()
+                        s_copy['fail_marks'] = subj['total'] # Store specific subject marks
+                        subject_failures.append(s_copy)
+            
+            response_data = subject_failures
+            stats = {
+                'total': subj_total,
+                'passed': subj_pass,
+                'failed': subj_total - subj_pass
+            }
+
+        return jsonify({'status': 'success', 'stats': stats, 'students': response_data})
+
     except Exception as e:
-        print(f"❌ Leaderboard error: {e}")
         return jsonify({'status': 'error', 'message': str(e)})
 
 if __name__ == '__main__':

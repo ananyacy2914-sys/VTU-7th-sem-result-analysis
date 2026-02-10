@@ -1,5 +1,6 @@
 import os
 import time
+import subprocess
 from flask import Flask, render_template, request, jsonify
 from bs4 import BeautifulSoup
 from pymongo import MongoClient
@@ -21,8 +22,6 @@ app.secret_key = 'vtu_7th_sem_final_key'
 
 # --- DATABASE CONNECTION ---
 MONGO_URI = os.getenv('MONGO_URI')
-
-# Fallback for local testing if .env is missing
 if not MONGO_URI:
     MONGO_URI = "mongodb+srv://abhi202456_db_user:hlwqDtBfFCpvVweD@cluster0.01ushqs.mongodb.net/vtu_7th_sem_db?retryWrites=true&w=majority&appName=Cluster0"
 
@@ -34,23 +33,41 @@ try:
 except Exception as e:
     print(f"❌ DB Error: {e}")
 
-# --- BROWSER SETUP (FIXED FOR RENDER) ---
+# --- BROWSER SETUP (ROBUST FIX) ---
 def init_driver():
     chrome_options = Options()
     chrome_options.add_argument("--headless=new") 
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     
-    # 1. Set Chrome Binary Location (Essential for Render)
-    if os.environ.get('CHROME_BIN'):
-        chrome_options.binary_location = os.environ.get('CHROME_BIN')
+    chrome_binary_path = os.environ.get('CHROME_BIN')
     
-    # 2. Automatically install and link the matching Driver
-    try:
+    # 1. Set Binary Path
+    if chrome_binary_path:
+        chrome_options.binary_location = chrome_binary_path
+        print(f"🔹 Using Custom Chrome Path: {chrome_binary_path}")
+
+        # 2. DETECT CHROME VERSION MANUALLY
+        # (This fixes the 'NoSuchDriverException' on Render)
+        try:
+            # Run the chrome binary with --version flag to get the string e.g. "Google Chrome 120.0.6099.109"
+            result = subprocess.run([chrome_binary_path, "--version"], capture_output=True, text=True)
+            version_output = result.stdout.strip()
+            print(f"🔹 Detected Chrome Version Output: {version_output}")
+            
+            # Extract just the version number (e.g., "120.0.6099.109")
+            chrome_version = version_output.split()[-1]
+            
+            # Install the EXACT matching driver
+            service = Service(ChromeDriverManager(driver_version=chrome_version).install())
+            print("✅ Driver installed successfully!")
+        except Exception as e:
+            print(f"⚠️ Version Detection Failed: {e}")
+            # Fallback to default install if detection fails
+            service = Service(ChromeDriverManager().install())
+    else:
+        # Local development fallback
         service = Service(ChromeDriverManager().install())
-    except Exception as e:
-        print(f"⚠️ Driver Manager Warning: {e}")
-        service = Service() # Fallback to default
         
     driver = webdriver.Chrome(service=service, options=chrome_options)
     return driver

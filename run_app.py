@@ -9,21 +9,21 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import UnexpectedAlertPresentException
-from dotenv import load_dotenv  # ✅ Added for security
+from dotenv import load_dotenv
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 
-# Load environment variables from .env file
+# Load environment variables
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = 'vtu_7th_sem_final_key'
 
 # --- DATABASE CONNECTION ---
-# ✅ Securely get URI from .env
 MONGO_URI = os.getenv('MONGO_URI')
 
+# Fallback for local testing if .env is missing
 if not MONGO_URI:
-    # Fallback only for local testing if .env is missing (Not recommended for GitHub)
-    print("⚠️  WARNING: MONGO_URI not found in .env file. Using hardcoded fallback (DO NOT PUSH THIS).")
     MONGO_URI = "mongodb+srv://abhi202456_db_user:hlwqDtBfFCpvVweD@cluster0.01ushqs.mongodb.net/vtu_7th_sem_db?retryWrites=true&w=majority&appName=Cluster0"
 
 try:
@@ -34,19 +34,28 @@ try:
 except Exception as e:
     print(f"❌ DB Error: {e}")
 
-# --- BROWSER SETUP ---
+# --- BROWSER SETUP (FIXED FOR RENDER) ---
 def init_driver():
     chrome_options = Options()
     chrome_options.add_argument("--headless=new") 
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     
-    # Check for custom Chrome binary (useful for Render/Heroku)
+    # 1. Set Chrome Binary Location (Essential for Render)
     if os.environ.get('CHROME_BIN'):
         chrome_options.binary_location = os.environ.get('CHROME_BIN')
+    
+    # 2. Automatically install and link the matching Driver
+    try:
+        service = Service(ChromeDriverManager().install())
+    except Exception as e:
+        print(f"⚠️ Driver Manager Warning: {e}")
+        service = Service() # Fallback to default
         
-    return webdriver.Chrome(options=chrome_options)
+    driver = webdriver.Chrome(service=service, options=chrome_options)
+    return driver
 
+# Global Driver Instance
 driver = init_driver()
 
 # --- HELPERS ---
@@ -216,5 +225,4 @@ def leaderboard():
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))
-    print(f"🚀 Server is running! Go to: http://localhost:{port}")
     app.run(host='0.0.0.0', port=port)

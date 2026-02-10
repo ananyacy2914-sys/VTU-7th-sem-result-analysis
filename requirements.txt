@@ -1,6 +1,8 @@
-Flask
+flask
+pymongo
 selenium
 beautifulsoup4
-pymongo
+dnspython
 gunicorn
 python-dotenv
+webdriver-manager

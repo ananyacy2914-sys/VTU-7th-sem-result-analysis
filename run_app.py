@@ -4,7 +4,7 @@ import asyncio
 from flask import Flask, render_template, request, jsonify
 from bs4 import BeautifulSoup
 from pymongo import MongoClient
-from playwright.async_api import async_playwright
+from pyppeteer import launch
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -25,32 +25,19 @@ try:
 except Exception as e:
     print(f"❌ DB Error: {e}")
 
-# --- PLAYWRIGHT BROWSER SETUP ---
+# --- BROWSER ---
 _browser = None
-_playwright = None
 
 async def get_browser():
-    """Get or create the browser instance"""
-    global _browser, _playwright
+    global _browser
     if _browser is None:
-        print("🚀 Initializing Playwright browser...")
-        _playwright = await async_playwright().start()
-        _browser = await _playwright.chromium.launch(
+        print("🚀 Launching browser...")
+        _browser = await launch(
             headless=True,
-            args=['--no-sandbox', '--disable-setuid-sandbox']
+            args=['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
         )
-        print("✅ Browser initialized!")
+        print("✅ Browser ready!")
     return _browser
-
-async def close_browser():
-    """Close browser and playwright"""
-    global _browser, _playwright
-    if _browser:
-        await _browser.close()
-        _browser = None
-    if _playwright:
-        await _playwright.stop()
-        _playwright = None
 
 # --- HELPERS ---
 def get_credits_2022_cs_7th(sub_code):
@@ -136,31 +123,30 @@ def home():
 
 @app.route('/get_captcha')
 def get_captcha():
-    async def fetch_captcha():
+    async def fetch():
         try:
             print("📸 Fetching captcha...")
             browser = await get_browser()
-            page = await browser.new_page()
-            await page.goto("https://results.vtu.ac.in/D25J26Ecbcs/index.php")
+            page = await browser.newPage()
+            await page.goto("https://results.vtu.ac.in/D25J26Ecbcs/index.php", {'waitUntil': 'networkidle0'})
             
-            # Wait for captcha image
-            captcha_img = await page.wait_for_selector("img[src*='captcha']", timeout=10000)
-            screenshot = await captcha_img.screenshot()
+            captcha = await page.querySelector("img[src*='captcha']")
+            screenshot = await captcha.screenshot()
             await page.close()
             
             print("✅ Captcha captured!")
             return screenshot
         except Exception as e:
-            print(f"❌ Captcha error: {e}")
+            print(f"❌ Error: {e}")
             import traceback
             traceback.print_exc()
             raise
     
     try:
-        screenshot = asyncio.run(fetch_captcha())
-        return screenshot, 200, {'Content-Type': 'image/png'}
+        img = asyncio.run(fetch())
+        return img, 200, {'Content-Type': 'image/png'}
     except:
-        return "Captcha failed", 500
+        return "Failed", 500
 
 @app.route('/fetch_result', methods=['POST'])
 def fetch_result():
@@ -168,80 +154,55 @@ def fetch_result():
     captcha = request.form['captcha'].strip()
     
     if not (usn.startswith('1DB21CS') or usn.startswith('1DB22CS')):
-        return jsonify({'status': 'error', 'message': 'Invalid USN format'})
+        return jsonify({'status': 'error', 'message': 'Invalid USN'})
     
     async def fetch():
         try:
             browser = await get_browser()
-            page = await browser.new_page()
+            page = await browser.newPage()
             await page.goto("https://results.vtu.ac.in/D25J26Ecbcs/index.php")
             
-            await page.fill("input[name='lns']", usn)
-            await page.fill("input[name='captchacode']", captcha)
+            await page.type("input[name='lns']", usn)
+            await page.type("input[name='captchacode']", captcha)
             await page.click("input[type='submit']")
-            
-            await page.wait_for_timeout(2000)
-            
-            # Handle alerts
-            try:
-                dialog = await page.wait_for_event('dialog', timeout=2000)
-                msg = dialog.message
-                await dialog.accept()
-                await page.close()
-                return {'status': 'error', 'message': f"VTU Says: {msg}"}
-            except:
-                pass
+            await page.waitFor(2000)
             
             html = await page.content()
             soup = BeautifulSoup(html, 'html.parser')
-            student_data = parse_result_page(soup, usn)
+            data = parse_result_page(soup, usn)
             
-            if student_data['name'] != "Unknown":
-                students_col.update_one({'usn': usn}, {'$set': student_data}, upsert=True)
-                
-                my_marks = student_data['total_marks']
-                rank = students_col.count_documents({'total_marks': {'$gt': my_marks}}) + 1
-                student_data['rank'] = rank
-                
+            if data['name'] != "Unknown":
+                students_col.update_one({'usn': usn}, {'$set': data}, upsert=True)
+                rank = students_col.count_documents({'total_marks': {'$gt': data['total_marks']}}) + 1
+                data['rank'] = rank
                 await page.close()
-                return {'status': 'success', 'data': student_data}
+                return {'status': 'success', 'data': data}
             
             await page.close()
-            return {'status': 'error', 'message': 'Failed to parse result.'}
-            
+            return {'status': 'error', 'message': 'Parse failed'}
         except Exception as e:
-            print(f"❌ Fetch error: {e}")
             return {'status': 'error', 'message': str(e)}
     
-    result = asyncio.run(fetch())
-    return jsonify(result)
+    return jsonify(asyncio.run(fetch()))
 
 @app.route('/leaderboard')
 def leaderboard():
     try:
         sort_by = request.args.get('sort', 'marks')
         order = request.args.get('order', 'desc')
-
         data = list(students_col.find({}, {'_id': 0}))
-
-        def get_sort_val(s, k):
-            try: 
-                return float(s.get(k, 0))
-            except: 
-                return 0.0
-
-        reverse_order = (order == 'desc')
+        
+        reverse = (order == 'desc')
         if sort_by == 'sgpa':
-            data.sort(key=lambda x: get_sort_val(x, 'sgpa'), reverse=reverse_order)
+            data.sort(key=lambda x: float(x.get('sgpa', 0)), reverse=reverse)
         else:
-            data.sort(key=lambda x: get_sort_val(x, 'total_marks'), reverse=reverse_order)
-
+            data.sort(key=lambda x: float(x.get('total_marks', 0)), reverse=reverse)
+        
         for i, s in enumerate(data): 
             s['rank'] = i + 1
         
         return jsonify({'status': 'success', 'data': data})
     except Exception as e:
-        print(f"❌ Leaderboard error: {e}")
         return jsonify({'status': 'error', 'message': str(e)})
 
 if __name__ == '__main__':

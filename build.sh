@@ -7,11 +7,8 @@ cd $HOME/project/src
 pip install --upgrade pip
 pip install -r requirements.txt
 
-# Install Playwright and its dependencies
-echo "Installing Playwright browsers..."
-python -m playwright install chromium
-
-echo "Installing Playwright system dependencies..."
-python -m playwright install-deps chromium
+# Download Chromium for Pyppeteer
+echo "Downloading Chromium..."
+python -c "import pyppeteer; pyppeteer.chromium_downloader.download_chromium()"
 
 echo "✅ Build completed successfully!"

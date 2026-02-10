@@ -1,9 +1,5 @@
 flask
-pymongo
-selenium
 beautifulsoup4
-dnspython
-gunicorn
+pymongo
 python-dotenv
-webdriver-manager
-Pillow
+playwright

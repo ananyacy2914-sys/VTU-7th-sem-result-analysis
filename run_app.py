@@ -37,68 +37,121 @@ try:
 except Exception as e:
     logger.error(f"❌ DB Error: {e}")
 
-# --- ZOMBIE PROCESS KILLER (Crucial for Render Free Tier) ---
+# --- ZOMBIE PROCESS KILLER ---
 def kill_zombies():
     try:
-        # Force kill any stuck chrome processes to free up RAM
-        subprocess.run(['pkill', '-f', 'chrome'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        subprocess.run(['pkill', '-f', 'chromedriver'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        time.sleep(1) # Wait for cleanup
-    except:
-        pass
+        subprocess.run(['pkill', '-9', '-f', 'chrome'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(['pkill', '-9', '-f', 'chromedriver'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        time.sleep(1.5)
+    except Exception as e:
+        logger.warning(f"Zombie cleanup warning: {e}")
 
 # --- BROWSER SETUP ---
 def create_driver():
-    # 1. Clean up before starting
     kill_zombies()
     
     chrome_options = Options()
-    # Memory Saving Flags
+    # Essential headless flags
     chrome_options.add_argument("--headless=new") 
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--disable-extensions")
     chrome_options.add_argument("--disable-application-cache")
-    chrome_options.add_argument("--window-size=1280,720") # Smaller window saves RAM
+    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+    chrome_options.add_argument("--window-size=1280,720")
+    chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
     
-    # 2. Render Environment Check
-    chrome_bin = os.environ.get('CHROME_BIN')
-    if chrome_bin:
-        chrome_options.binary_location = chrome_bin
-        try:
-            result = subprocess.run([chrome_bin, "--version"], capture_output=True, text=True)
-            ver = result.stdout.strip().split()[-1]
-            service = Service(ChromeDriverManager(driver_version=ver).install())
-        except:
-            service = Service(ChromeDriverManager().install())
-    else:
+    # Memory optimization for free tier
+    chrome_options.add_argument("--single-process")
+    chrome_options.add_argument("--disable-software-rasterizer")
+    chrome_options.add_argument("--disable-background-timer-throttling")
+    chrome_options.add_argument("--disable-backgrounding-occluded-windows")
+    chrome_options.add_argument("--disable-renderer-backgrounding")
+    
+    # Check for Chrome binary in multiple locations (Render buildpack support)
+    chrome_paths = [
+        os.environ.get('GOOGLE_CHROME_BIN'),
+        os.environ.get('CHROME_BIN'),
+        '/app/.chrome-for-testing/chrome-linux64/chrome',  # Render buildpack
+        '/usr/bin/google-chrome-stable',
+        '/usr/bin/google-chrome',
+        '/usr/bin/chromium-browser'
+    ]
+    
+    chrome_found = False
+    for path in chrome_paths:
+        if path and os.path.exists(path):
+            chrome_options.binary_location = path
+            logger.info(f"✅ Using Chrome at: {path}")
+            chrome_found = True
+            break
+    
+    if not chrome_found:
+        logger.warning("⚠️ Chrome binary not found in standard locations")
+    
+    # Check for ChromeDriver in multiple locations
+    driver_paths = [
+        os.environ.get('CHROMEDRIVER_PATH'),
+        '/app/.chromedriver/bin/chromedriver',  # Render buildpack
+        '/usr/local/bin/chromedriver',
+        '/usr/bin/chromedriver'
+    ]
+    
+    service = None
+    for path in driver_paths:
+        if path and os.path.exists(path):
+            service = Service(path)
+            logger.info(f"✅ Using ChromeDriver: {path}")
+            break
+    
+    if not service:
+        logger.info("📥 Downloading ChromeDriver via webdriver-manager...")
         service = Service(ChromeDriverManager().install())
         
     driver = webdriver.Chrome(service=service, options=chrome_options)
-    driver.set_page_load_timeout(45) # Longer timeout for slow VTU site
+    driver.set_page_load_timeout(60)
+    driver.implicitly_wait(10)
     return driver
 
 # Global Driver Management
 _driver = None
+_driver_last_used = 0
+DRIVER_TIMEOUT = 300  # Reset after 5 minutes
 
 def get_driver():
-    global _driver
-    if _driver is None:
+    global _driver, _driver_last_used
+    current_time = time.time()
+    
+    if _driver is None or (current_time - _driver_last_used) > DRIVER_TIMEOUT:
+        reset_driver()
         logger.info("🚀 Starting new browser session...")
-        try: _driver = create_driver()
-        except: 
-            logger.warning("⚠️ Driver creation failed, retrying...")
+        try: 
             _driver = create_driver()
+            _driver_last_used = current_time
+        except Exception as e:
+            logger.error(f"Driver creation failed: {e}")
+            kill_zombies()
+            time.sleep(2)
+            _driver = create_driver()
+            _driver_last_used = current_time
+    else:
+        _driver_last_used = current_time
+        
     return _driver
 
 def reset_driver():
-    global _driver
+    global _driver, _driver_last_used
     if _driver:
-        try: _driver.quit()
-        except: pass
+        try: 
+            _driver.quit()
+            logger.info("🛑 Driver quit successfully")
+        except Exception as e:
+            logger.warning(f"Error quitting driver: {e}")
     _driver = None
-    kill_zombies() # Ensure RAM is freed
+    _driver_last_used = 0
+    kill_zombies()
+    time.sleep(1)
     logger.info("🔄 Driver Reset Complete")
 
 # --- HELPERS ---
@@ -135,7 +188,9 @@ def parse_result_page(soup, usn):
                 break
         
         div_rows = soup.find_all('div', class_='divTableRow')
-        total_credits = 0; total_gp = 0; running_total = 0
+        total_credits = 0
+        total_gp = 0
+        running_total = 0
         has_fail = False
         
         for row in div_rows[1:]:
@@ -146,7 +201,8 @@ def parse_result_page(soup, usn):
                 marks = cells[4].text.strip()
                 res = cells[5].text.strip()
                 
-                if res == 'F' or int(marks) < 18: has_fail = True # Strict check
+                if res == 'F' or int(marks) < 18: 
+                    has_fail = True
                 
                 credits = get_credits_2022_cs_7th(code)
                 gp = calculate_grade_point(marks)
@@ -167,38 +223,119 @@ def parse_result_page(soup, usn):
             
             if has_fail:
                 data['class_result'] = "Fail"
-            elif perc >= 70: data['class_result'] = "First Class with Distinction"
-            elif perc >= 60: data['class_result'] = "First Class"
-            elif perc >= 50: data['class_result'] = "Second Class"
-            elif perc >= 40: data['class_result'] = "Pass Class"
-            else: data['class_result'] = "Fail"
+            elif perc >= 70: 
+                data['class_result'] = "First Class with Distinction"
+            elif perc >= 60: 
+                data['class_result'] = "First Class"
+            elif perc >= 50: 
+                data['class_result'] = "Second Class"
+            elif perc >= 40: 
+                data['class_result'] = "Pass Class"
+            else: 
+                data['class_result'] = "Fail"
             
-    except: pass
+    except Exception as e:
+        logger.error(f"Parse error: {e}")
     return data
 
 # --- ROUTES ---
 @app.route('/')
-def home(): return render_template('index.html')
+def home(): 
+    return render_template('index.html')
+
+@app.route('/health')
+def health():
+    return jsonify({'status': 'healthy', 'timestamp': time.time()})
 
 @app.route('/get_captcha')
 def get_captcha():
-    # AGGRESSIVE RETRY LOGIC (Max 3 attempts)
-    for attempt in range(3):
+    max_attempts = 3
+    
+    for attempt in range(max_attempts):
+        driver = None
         try:
+            if attempt == 0:
+                logger.info("🔄 Resetting driver for fresh captcha session")
+                reset_driver()
+                
+            logger.info(f"🔍 Captcha Attempt {attempt+1}/{max_attempts}: Initializing driver...")
             driver = get_driver()
+            
+            logger.info("📡 Loading VTU results page...")
             driver.get("https://results.vtu.ac.in/D25J26Ecbcs/index.php")
             
-            # Wait for image
-            wait = WebDriverWait(driver, 25) 
-            img = wait.until(EC.presence_of_element_located((By.XPATH, "//img[contains(@src, 'captcha')]")))
+            wait = WebDriverWait(driver, 35)
+            wait.until(EC.presence_of_element_located((By.TAG_NAME, "body")))
+            logger.info("✅ Page loaded")
             
-            return img.screenshot_as_png, 200, {'Content-Type': 'image/png'}
+            time.sleep(1)
+            
+            img = None
+            selectors = [
+                "//img[contains(@src, 'captcha')]",
+                "//img[contains(@src, 'Captcha')]",
+                "//img[contains(@src, 'CAPTCHA')]",
+                "//img[@id='captcha']",
+                "//img[@name='captcha']",
+                "//img[contains(@alt, 'captcha')]"
+            ]
+            
+            for idx, selector in enumerate(selectors):
+                try:
+                    logger.info(f"Trying selector {idx+1}: {selector}")
+                    img = driver.find_element(By.XPATH, selector)
+                    if img:
+                        logger.info(f"✅ Captcha image found with selector {idx+1}!")
+                        break
+                except Exception as se:
+                    logger.debug(f"Selector {idx+1} failed: {se}")
+                    continue
+            
+            if not img:
+                logger.warning("⚠️ Standard selectors failed, trying to find any image...")
+                imgs = driver.find_elements(By.TAG_NAME, "img")
+                if imgs:
+                    img = imgs[0]
+                    logger.info(f"Found {len(imgs)} images, using first one")
+            
+            if not img:
+                raise Exception("Captcha image not found with any selector")
+            
+            driver.execute_script("arguments[0].scrollIntoView(true);", img)
+            time.sleep(0.8)
+            
+            try:
+                screenshot = img.screenshot_as_png
+            except Exception as screenshot_error:
+                logger.warning(f"Element screenshot failed: {screenshot_error}, trying full page")
+                screenshot = driver.get_screenshot_as_png()
+            
+            if screenshot and len(screenshot) > 100:
+                logger.info(f"✅ Captcha captured successfully (Attempt {attempt+1}, {len(screenshot)} bytes)")
+                return screenshot, 200, {'Content-Type': 'image/png'}
+            else:
+                raise Exception("Screenshot is empty or too small")
+            
+        except TimeoutException as te:
+            logger.error(f"❌ Timeout on attempt {attempt+1}: {str(te)}")
+            reset_driver()
+            time.sleep(3)
+            
+        except WebDriverException as we:
+            logger.error(f"❌ WebDriver error on attempt {attempt+1}: {str(we)}")
+            reset_driver()
+            time.sleep(3)
             
         except Exception as e:
-            logger.warning(f"⚠️ Captcha Attempt {attempt+1} Failed: {e}")
-            reset_driver() # Kill browser and retry loop will create a fresh one
+            logger.error(f"❌ Captcha Attempt {attempt+1} Failed: {str(e)}")
+            reset_driver()
+            time.sleep(2 * (attempt + 1))
             
-    return "Error: Server Busy", 500
+    logger.error("❌ All captcha attempts exhausted")
+    reset_driver()
+    return jsonify({
+        'error': 'Failed to load captcha after multiple attempts. Please try again in a moment.'
+    }), 503
 
 @app.route('/fetch_result', methods=['POST'])
 def fetch_result():
@@ -210,22 +347,29 @@ def fetch_result():
     
     try:
         driver = get_driver()
-        # Verify Session Validity
         try:
-            if "results.vtu.ac.in" not in driver.current_url:
+            current_url = driver.current_url
+            if "results.vtu.ac.in" not in current_url:
+                logger.warning(f"Session on wrong URL: {current_url}")
                 raise Exception("Session Timeout")
         except:
-            return jsonify({'status': 'error', 'message': 'Session expired. Reload Captcha.'})
+            logger.error("Session verification failed")
+            return jsonify({'status': 'error', 'message': 'Session expired. Please reload captcha.'})
 
-        driver.find_element(By.NAME, "lns").send_keys(usn)
-        driver.find_element(By.NAME, "captchacode").send_keys(captcha)
+        usn_field = driver.find_element(By.NAME, "lns")
+        usn_field.clear()
+        usn_field.send_keys(usn)
+        
+        captcha_field = driver.find_element(By.NAME, "captchacode")
+        captcha_field.clear()
+        captcha_field.send_keys(captcha)
         
         try: driver.find_element(By.XPATH, "//input[@type='submit']").click()
         except UnexpectedAlertPresentException:
             alert = driver.switch_to.alert; msg = alert.text; alert.accept(); driver.refresh()
             return jsonify({'status': 'error', 'message': f"Alert: {msg}"})
 
-        time.sleep(1.5)
+        time.sleep(2)
         
         try:
             WebDriverWait(driver, 5).until(EC.alert_is_present())
@@ -246,7 +390,9 @@ def fetch_result():
             student_data['rank'] = rank
 
             if len(driver.window_handles) > 1: driver.close(); driver.switch_to.window(driver.window_handles[0])
-            try: driver.find_element(By.NAME, "lns").clear(); driver.find_element(By.NAME, "captchacode").clear()
+            try: 
+                driver.find_element(By.NAME, "lns").clear()
+                driver.find_element(By.NAME, "captchacode").clear()
             except: pass
 
             return jsonify({'status': 'success', 'data': student_data})
@@ -277,14 +423,12 @@ def leaderboard():
         return jsonify({'status': 'success', 'data': data})
     except Exception as e: return jsonify({'status': 'error', 'message': str(e)})
 
-# --- ANALYSIS ROUTE (With Strict Fail Logic) ---
 @app.route('/get_analysis')
 def get_analysis():
     try:
         category = request.args.get('category', 'overall_fail')
         all_students = list(students_col.find({}, {'_id': 0}))
         
-        # Calculate Stats (Strict Fail Check)
         failed_count = 0
         for s in all_students:
             is_fail = s.get('class_result') == 'Fail' or any(sub.get('result') == 'F' for sub in s.get('subjects', []))
@@ -299,12 +443,10 @@ def get_analysis():
         response_data = []
 
         if category == 'overall_fail':
-            # Add anyone who has AT LEAST one 'F' in subjects
             for s in all_students:
                 failed_subs = [sub['code'] for sub in s.get('subjects', []) if sub.get('result') == 'F']
                 if failed_subs or s.get('class_result') == 'Fail':
                     s_copy = s.copy()
-                    # Show which subjects they failed in the status
                     s_copy['fail_summary'] = ", ".join(failed_subs) if failed_subs else "Fail"
                     response_data.append(s_copy)
                     
@@ -315,14 +457,16 @@ def get_analysis():
         elif category == 'sc':
             response_data = [s for s in all_students if s.get('class_result') == 'Second Class']
         else:
-            # Subject-wise filtering
+            # Subject specific analysis
             subject_code = category
-            subj_total = 0; subj_pass = 0
+            subj_total = 0
+            subj_pass = 0
             for s in all_students:
                 subj = next((item for item in s.get('subjects', []) if item['code'] == subject_code), None)
                 if subj:
                     subj_total += 1
-                    if subj['result'] == 'P': subj_pass += 1
+                    if subj['result'] == 'P': 
+                        subj_pass += 1
                     else:
                         s_copy = s.copy()
                         s_copy['fail_marks'] = subj['total']

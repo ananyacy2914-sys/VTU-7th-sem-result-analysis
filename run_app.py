@@ -1,10 +1,15 @@
 import os
 import time
-import asyncio
 from flask import Flask, render_template, request, jsonify
 from bs4 import BeautifulSoup
 from pymongo import MongoClient
-from pyppeteer import launch
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import UnexpectedAlertPresentException
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -25,19 +30,43 @@ try:
 except Exception as e:
     print(f"❌ DB Error: {e}")
 
-# --- BROWSER ---
-_browser = None
+# --- SIMPLE CHROME SETUP ---
+def create_driver():
+    """Create a new Chrome driver instance"""
+    chrome_options = Options()
+    chrome_options.add_argument("--headless=new")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--disable-gpu")
+    
+    # On Render, use system chromium
+    if os.path.exists('/usr/bin/chromium'):
+        chrome_options.binary_location = '/usr/bin/chromium'
+        service = Service('/usr/bin/chromedriver')
+    else:
+        # Local development
+        service = Service()
+    
+    driver = webdriver.Chrome(service=service, options=chrome_options)
+    print("✅ Chrome driver created")
+    return driver
 
-async def get_browser():
-    global _browser
-    if _browser is None:
-        print("🚀 Launching browser...")
-        _browser = await launch(
-            headless=True,
-            args=['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
-        )
-        print("✅ Browser ready!")
-    return _browser
+_driver = None
+
+def get_driver():
+    global _driver
+    if _driver is None:
+        _driver = create_driver()
+    return _driver
+
+def reset_driver():
+    global _driver
+    try:
+        if _driver:
+            _driver.quit()
+    except:
+        pass
+    _driver = None
 
 # --- HELPERS ---
 def get_credits_2022_cs_7th(sub_code):
@@ -123,30 +152,17 @@ def home():
 
 @app.route('/get_captcha')
 def get_captcha():
-    async def fetch():
-        try:
-            print("📸 Fetching captcha...")
-            browser = await get_browser()
-            page = await browser.newPage()
-            await page.goto("https://results.vtu.ac.in/D25J26Ecbcs/index.php", {'waitUntil': 'networkidle0'})
-            
-            captcha = await page.querySelector("img[src*='captcha']")
-            screenshot = await captcha.screenshot()
-            await page.close()
-            
-            print("✅ Captcha captured!")
-            return screenshot
-        except Exception as e:
-            print(f"❌ Error: {e}")
-            import traceback
-            traceback.print_exc()
-            raise
-    
     try:
-        img = asyncio.run(fetch())
-        return img, 200, {'Content-Type': 'image/png'}
-    except:
-        return "Failed", 500
+        driver = get_driver()
+        driver.get("https://results.vtu.ac.in/D25J26Ecbcs/index.php")
+        wait = WebDriverWait(driver, 10)
+        img = wait.until(EC.presence_of_element_located((By.XPATH, "//img[contains(@src, 'captcha')]")))
+        time.sleep(0.3)
+        return img.screenshot_as_png, 200, {'Content-Type': 'image/png'}
+    except Exception as e:
+        print(f"❌ Captcha error: {e}")
+        reset_driver()
+        return "Error", 500
 
 @app.route('/fetch_result', methods=['POST'])
 def fetch_result():
@@ -154,55 +170,100 @@ def fetch_result():
     captcha = request.form['captcha'].strip()
     
     if not (usn.startswith('1DB21CS') or usn.startswith('1DB22CS')):
-        return jsonify({'status': 'error', 'message': 'Invalid USN'})
+        return jsonify({'status': 'error', 'message': 'Invalid USN format'})
     
-    async def fetch():
+    try:
+        driver = get_driver()
+        
+        if "results.vtu.ac.in" not in driver.current_url:
+            return jsonify({'status': 'error', 'message': 'Session timeout. Reload Captcha.'})
+
+        driver.find_element(By.NAME, "lns").send_keys(usn)
+        driver.find_element(By.NAME, "captchacode").send_keys(captcha)
+        
+        try: 
+            driver.find_element(By.XPATH, "//input[@type='submit']").click()
+        except UnexpectedAlertPresentException:
+            alert = driver.switch_to.alert
+            msg = alert.text
+            alert.accept()
+            driver.refresh()
+            return jsonify({'status': 'error', 'message': f"Alert: {msg}"})
+
+        time.sleep(1.5)
+        
         try:
-            browser = await get_browser()
-            page = await browser.newPage()
-            await page.goto("https://results.vtu.ac.in/D25J26Ecbcs/index.php")
+            WebDriverWait(driver, 3).until(EC.alert_is_present())
+            alert = driver.switch_to.alert
+            msg = alert.text
+            alert.accept()
+            driver.refresh()
+            return jsonify({'status': 'error', 'message': f"VTU Says: {msg}"})
+        except: 
+            pass
+
+        if len(driver.window_handles) > 1: 
+            driver.switch_to.window(driver.window_handles[-1])
+        
+        soup = BeautifulSoup(driver.page_source, 'html.parser')
+        student_data = parse_result_page(soup, usn)
+        
+        if student_data['name'] != "Unknown":
+            students_col.update_one({'usn': usn}, {'$set': student_data}, upsert=True)
             
-            await page.type("input[name='lns']", usn)
-            await page.type("input[name='captchacode']", captcha)
-            await page.click("input[type='submit']")
-            await page.waitFor(2000)
+            my_marks = student_data['total_marks']
+            rank = students_col.count_documents({'total_marks': {'$gt': my_marks}}) + 1
+            student_data['rank'] = rank
+
+            if len(driver.window_handles) > 1: 
+                driver.close()
+                driver.switch_to.window(driver.window_handles[0])
             
-            html = await page.content()
-            soup = BeautifulSoup(html, 'html.parser')
-            data = parse_result_page(soup, usn)
-            
-            if data['name'] != "Unknown":
-                students_col.update_one({'usn': usn}, {'$set': data}, upsert=True)
-                rank = students_col.count_documents({'total_marks': {'$gt': data['total_marks']}}) + 1
-                data['rank'] = rank
-                await page.close()
-                return {'status': 'success', 'data': data}
-            
-            await page.close()
-            return {'status': 'error', 'message': 'Parse failed'}
-        except Exception as e:
-            return {'status': 'error', 'message': str(e)}
-    
-    return jsonify(asyncio.run(fetch()))
+            try: 
+                driver.find_element(By.NAME, "lns").clear()
+                driver.find_element(By.NAME, "captchacode").clear()
+            except: 
+                pass
+
+            return jsonify({'status': 'success', 'data': student_data})
+        
+        return jsonify({'status': 'error', 'message': 'Failed to parse result.'})
+
+    except Exception as e:
+        print(f"❌ Fetch error: {e}")
+        try: 
+            driver = get_driver()
+            driver.get("https://results.vtu.ac.in/D25J26Ecbcs/index.php")
+        except: 
+            reset_driver()
+        return jsonify({'status': 'error', 'message': str(e)})
 
 @app.route('/leaderboard')
 def leaderboard():
     try:
         sort_by = request.args.get('sort', 'marks')
         order = request.args.get('order', 'desc')
+
         data = list(students_col.find({}, {'_id': 0}))
-        
-        reverse = (order == 'desc')
+
+        def get_sort_val(s, k):
+            try: 
+                return float(s.get(k, 0))
+            except: 
+                return 0.0
+
+        reverse_order = (order == 'desc')
         if sort_by == 'sgpa':
-            data.sort(key=lambda x: float(x.get('sgpa', 0)), reverse=reverse)
+            data.sort(key=lambda x: get_sort_val(x, 'sgpa'), reverse=reverse_order)
         else:
-            data.sort(key=lambda x: float(x.get('total_marks', 0)), reverse=reverse)
-        
+            data.sort(key=lambda x: get_sort_val(x, 'total_marks'), reverse=reverse_order)
+
         for i, s in enumerate(data): 
             s['rank'] = i + 1
         
         return jsonify({'status': 'success', 'data': data})
     except Exception as e:
+        print(f"❌ Leaderboard error: {e}")
         return jsonify({'status': 'error', 'message': str(e)})
 
 if __name__ == '__main__':

@@ -2,4 +2,6 @@ flask
 beautifulsoup4
 pymongo
 python-dotenv
-pyppeteer
+selenium
+webdriver-manager
+gunicorn

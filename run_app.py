@@ -10,7 +10,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import UnexpectedAlertPresentException
+from selenium.common.exceptions import UnexpectedAlertPresentException, WebDriverException
 from dotenv import load_dotenv
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
@@ -27,7 +27,6 @@ app.secret_key = 'vtu_7th_sem_final_key'
 # --- DATABASE CONNECTION ---
 MONGO_URI = os.getenv('MONGO_URI')
 if not MONGO_URI:
-    # Fallback for local testing
     MONGO_URI = "mongodb+srv://abhi202456_db_user:hlwqDtBfFCpvVweD@cluster0.01ushqs.mongodb.net/vtu_7th_sem_db?retryWrites=true&w=majority&appName=Cluster0"
 
 try:
@@ -38,35 +37,37 @@ try:
 except Exception as e:
     logger.error(f"❌ DB Error: {e}")
 
-# --- BROWSER SETUP ---
+# --- BROWSER SETUP (STABILIZED) ---
 def create_driver():
     chrome_options = Options()
-    chrome_options.add_argument("--headless=new")
+    # Critical Flags for Render Free Tier Stability
+    chrome_options.add_argument("--headless=new") 
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--disable-extensions")
+    chrome_options.add_argument("--window-size=1920,1080")
     
     # Render Environment Check
     chrome_bin = os.environ.get('CHROME_BIN')
     if chrome_bin:
         chrome_options.binary_location = chrome_bin
         logger.info(f"🔹 Custom Chrome Path: {chrome_bin}")
-
         try:
             # 1. Get Version
             result = subprocess.run([chrome_bin, "--version"], capture_output=True, text=True)
             ver = result.stdout.strip().split()[-1]
             logger.info(f"🔹 Chrome Version: {ver}")
-            
             # 2. Install Matching Driver
             service = Service(ChromeDriverManager(driver_version=ver).install())
         except:
-            # Fallback
             service = Service(ChromeDriverManager().install())
     else:
         service = Service(ChromeDriverManager().install())
         
-    return webdriver.Chrome(service=service, options=chrome_options)
+    driver = webdriver.Chrome(service=service, options=chrome_options)
+    driver.set_page_load_timeout(30) # Prevent hanging
+    return driver
 
 # Global Driver Management
 _driver = None
@@ -88,7 +89,6 @@ def reset_driver():
 # --- HELPERS ---
 def get_credits_2022_cs_7th(sub_code):
     code = sub_code.upper().strip()
-    # 7th Sem 2022 Scheme Map
     if code.startswith("BCS701"): return 4  
     if code.startswith("BCS702"): return 4  
     if code.startswith("BCS703"): return 4  
@@ -169,24 +169,28 @@ def home(): return render_template('index.html')
 
 @app.route('/get_captcha')
 def get_captcha():
-    try:
-        driver = get_driver()
-        driver.get("https://results.vtu.ac.in/D25J26Ecbcs/index.php")
-        wait = WebDriverWait(driver, 15)
-        img = wait.until(EC.presence_of_element_located((By.XPATH, "//img[contains(@src, 'captcha')]")))
-        return img.screenshot_as_png, 200, {'Content-Type': 'image/png'}
-    except Exception as e:
-        logger.error(f"Captcha Error: {e}")
-        reset_driver()
-        return "Error", 500
+    # RETRY LOGIC for robustness
+    for attempt in range(2):
+        try:
+            driver = get_driver()
+            driver.get("https://results.vtu.ac.in/D25J26Ecbcs/index.php")
+            wait = WebDriverWait(driver, 20) # Increased timeout
+            img = wait.until(EC.presence_of_element_located((By.XPATH, "//img[contains(@src, 'captcha')]")))
+            return img.screenshot_as_png, 200, {'Content-Type': 'image/png'}
+        except Exception as e:
+            logger.warning(f"⚠️ Captcha Attempt {attempt+1} Failed: {e}")
+            reset_driver() # Kill dead browser and try again loop
+            
+    return "Error", 500
 
 @app.route('/fetch_result', methods=['POST'])
 def fetch_result():
     usn = request.form['usn'].strip().upper()
     captcha = request.form['captcha'].strip()
     
-    if not (usn.startswith('1DB21CS') or usn.startswith('1DB22CS')): # Strict USN filter
-        return jsonify({'status': 'error', 'message': 'Invalid USN. Only 1DB21CS... allowed'})
+    # Strict USN Filter (Edit based on your batch needs)
+    if not (usn.startswith('1DB21CS') or usn.startswith('1DB22CS') or usn.startswith('1DB23CS')): 
+        return jsonify({'status': 'error', 'message': 'Invalid USN.'})
     
     try:
         driver = get_driver()
@@ -204,7 +208,7 @@ def fetch_result():
         time.sleep(1.5)
         
         try:
-            WebDriverWait(driver, 3).until(EC.alert_is_present())
+            WebDriverWait(driver, 5).until(EC.alert_is_present())
             alert = driver.switch_to.alert; msg = alert.text; alert.accept(); driver.refresh()
             return jsonify({'status': 'error', 'message': f"VTU Says: {msg}"})
         except: pass
@@ -253,7 +257,7 @@ def leaderboard():
         return jsonify({'status': 'success', 'data': data})
     except Exception as e: return jsonify({'status': 'error', 'message': str(e)})
 
-# --- ANALYSIS ROUTE (NEW) ---
+# --- ANALYSIS ROUTE ---
 @app.route('/get_analysis')
 def get_analysis():
     try:
@@ -286,24 +290,20 @@ def get_analysis():
         
         # 3. Subject-wise Analysis
         else:
-            # Category acts as subject code here (e.g., "BCS701")
             subject_code = category
             subject_failures = []
-            
             subj_total = 0
             subj_pass = 0
             
             for s in all_students:
-                # Find the specific subject in this student's list
                 subj = next((item for item in s.get('subjects', []) if item['code'] == subject_code), None)
                 if subj:
                     subj_total += 1
                     if subj['result'] == 'P':
                         subj_pass += 1
                     else:
-                        # Add student to failure list with their marks
                         s_copy = s.copy()
-                        s_copy['fail_marks'] = subj['total'] # Store specific subject marks
+                        s_copy['fail_marks'] = subj['total']
                         subject_failures.append(s_copy)
             
             response_data = subject_failures

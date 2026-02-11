@@ -2,6 +2,7 @@ import os
 import time
 import logging
 import subprocess
+import threading # NEW: For handling concurrent users
 from flask import Flask, render_template, request, jsonify
 from bs4 import BeautifulSoup
 from pymongo import MongoClient
@@ -10,7 +11,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import UnexpectedAlertPresentException, WebDriverException, TimeoutException
+from selenium.common.exceptions import UnexpectedAlertPresentException, WebDriverException
 from dotenv import load_dotenv
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
@@ -23,6 +24,10 @@ load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = 'vtu_7th_sem_final_key'
+
+# --- TRAFFIC CONTROL ---
+# This lock prevents two users from crashing the browser by using it at the same time
+driver_lock = threading.Lock()
 
 # --- DATABASE CONNECTION ---
 MONGO_URI = os.getenv('MONGO_URI')
@@ -49,7 +54,6 @@ def create_driver():
     kill_zombies()
     
     chrome_options = Options()
-    # Critical flags for Render
     chrome_options.add_argument("--headless=new") 
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
@@ -57,7 +61,7 @@ def create_driver():
     chrome_options.add_argument("--disable-extensions")
     chrome_options.add_argument("--window-size=1920,1080")
     
-    # 1. FIND CHROME BINARY
+    # Render Path Check
     chrome_bin = os.environ.get('CHROME_BIN')
     if not chrome_bin:
         possible_paths = ['/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser']
@@ -68,33 +72,27 @@ def create_driver():
 
     if chrome_bin:
         chrome_options.binary_location = chrome_bin
-        logger.info(f"🔹 Found Chrome at: {chrome_bin}")
         try:
-            # 2. VERSION MATCHING (Fixes 502 Errors)
             result = subprocess.run([chrome_bin, "--version"], capture_output=True, text=True)
             ver = result.stdout.strip().split()[-1]
-            logger.info(f"🔹 Detected Version: {ver}")
             service = Service(ChromeDriverManager(driver_version=ver).install())
-        except Exception as e:
-            logger.warning(f"⚠️ Version match failed, using default: {e}")
+        except:
             service = Service(ChromeDriverManager().install())
     else:
         service = Service(ChromeDriverManager().install())
         
     driver = webdriver.Chrome(service=service, options=chrome_options)
-    driver.set_page_load_timeout(45)
+    driver.set_page_load_timeout(60)
     return driver
 
-# Global Driver Management
+# Global Driver
 _driver = None
 
 def get_driver():
     global _driver
     if _driver is None:
         try: _driver = create_driver()
-        except: 
-            logger.warning("⚠️ Driver creation failed, retrying...")
-            _driver = create_driver()
+        except: _driver = create_driver()
     return _driver
 
 def reset_driver():
@@ -105,7 +103,100 @@ def reset_driver():
     _driver = None
     kill_zombies()
 
-# --- HELPERS ---
+# --- ROUTES ---
+@app.route('/')
+def home(): return render_template('index.html')
+
+@app.route('/reload_captcha')
+def reload_captcha():
+    with driver_lock: # LOCK: Only one reset at a time
+        reset_driver()
+        return get_captcha_internal()
+
+@app.route('/get_captcha')
+def get_captcha():
+    with driver_lock: # LOCK: Queue users
+        return get_captcha_internal()
+
+def get_captcha_internal():
+    for attempt in range(3):
+        try:
+            driver = get_driver()
+            driver.get("https://results.vtu.ac.in/D25J26Ecbcs/index.php")
+            wait = WebDriverWait(driver, 20)
+            img = wait.until(EC.presence_of_element_located((By.XPATH, "//img[contains(@src, 'captcha')]")))
+            return img.screenshot_as_png, 200, {'Content-Type': 'image/png'}
+        except Exception as e:
+            logger.warning(f"⚠️ Captcha Fail: {e}")
+            reset_driver()
+    return "Error", 500
+
+@app.route('/fetch_result', methods=['POST'])
+def fetch_result():
+    usn = request.form['usn'].strip().upper()
+    captcha = request.form['captcha'].strip()
+    
+    with driver_lock: # LOCK: Critical Section
+        try:
+            driver = get_driver()
+            
+            # 1. Validate Session
+            try:
+                if "results.vtu.ac.in" not in driver.current_url: raise Exception("Timeout")
+            except: return jsonify({'status': 'error', 'message': 'Session timeout. Reload.'})
+
+            # 2. Fill Form
+            driver.find_element(By.NAME, "lns").clear()
+            driver.find_element(By.NAME, "lns").send_keys(usn)
+            driver.find_element(By.NAME, "captchacode").clear()
+            driver.find_element(By.NAME, "captchacode").send_keys(captcha)
+            
+            try: driver.find_element(By.XPATH, "//input[@type='submit']").click()
+            except UnexpectedAlertPresentException:
+                alert = driver.switch_to.alert; msg = alert.text; alert.accept(); driver.refresh()
+                return jsonify({'status': 'error', 'message': f"Alert: {msg}"})
+
+            time.sleep(2)
+            
+            try:
+                WebDriverWait(driver, 3).until(EC.alert_is_present())
+                alert = driver.switch_to.alert; msg = alert.text; alert.accept(); driver.refresh()
+                return jsonify({'status': 'error', 'message': f"VTU Says: {msg}"})
+            except: pass
+
+            if len(driver.window_handles) > 1: driver.switch_to.window(driver.window_handles[-1])
+            
+            # 3. Parse
+            soup = BeautifulSoup(driver.page_source, 'html.parser')
+            student_data = parse_result_page(soup, usn)
+            
+            # 4. Save & Clean
+            if student_data['name'] != "Unknown":
+                students_col.update_one({'usn': usn}, {'$set': student_data}, upsert=True)
+                my_marks = student_data['total_marks']
+                rank = students_col.count_documents({'total_marks': {'$gt': my_marks}}) + 1
+                student_data['rank'] = rank
+
+                if len(driver.window_handles) > 1: driver.close(); driver.switch_to.window(driver.window_handles[0])
+                # Clear fields to keep session clean
+                try: driver.find_element(By.NAME, "lns").clear(); driver.find_element(By.NAME, "captchacode").clear()
+                except: pass
+                
+                return jsonify({'status': 'success', 'data': student_data})
+            
+            return jsonify({'status': 'error', 'message': 'Parsing failed.'})
+
+        except Exception as e:
+            logger.error(f"Fetch Error: {e}")
+            reset_driver()
+            return jsonify({'status': 'error', 'message': "Server Error. Try again."})
+
+# --- KEEP YOUR EXISTING HELPERS & ANALYSIS ROUTES BELOW ---
+# (Paste the get_credits, calculate_grade_point, parse_result_page, leaderboard, and get_analysis functions from previous code here)
+# ... [Helpers Code] ...
+# ... [Analysis Route Code] ...
+
+# --- Helper Functions (Standard) ---
 def get_credits_2022_cs_7th(sub_code):
     code = sub_code.upper().strip()
     if code.startswith("BCS701"): return 4  
@@ -153,8 +244,7 @@ def parse_result_page(soup, usn):
                 try: marks_int = int(marks)
                 except: marks_int = 0
                 
-                if res in ['F', 'A', 'X'] or (res == 'P' and marks_int < 18):
-                    has_fail = True
+                if res in ['F', 'A', 'X'] or (res == 'P' and marks_int < 18): has_fail = True
                 
                 credits = get_credits_2022_cs_7th(code)
                 gp = calculate_grade_point(marks)
@@ -183,92 +273,6 @@ def parse_result_page(soup, usn):
     except: pass
     return data
 
-# --- ROUTES ---
-@app.route('/')
-def home(): return render_template('index.html')
-
-@app.route('/health')
-def health(): return jsonify({'status': 'healthy', 'timestamp': time.time()})
-
-@app.route('/reload_captcha')
-def reload_captcha():
-    # Force reset driver and get new captcha
-    reset_driver()
-    return get_captcha()
-
-@app.route('/get_captcha')
-def get_captcha():
-    max_attempts = 3
-    for attempt in range(max_attempts):
-        try:
-            driver = get_driver()
-            driver.get("https://results.vtu.ac.in/D25J26Ecbcs/index.php")
-            
-            wait = WebDriverWait(driver, 20)
-            img = wait.until(EC.presence_of_element_located((By.XPATH, "//img[contains(@src, 'captcha')]")))
-            
-            return img.screenshot_as_png, 200, {'Content-Type': 'image/png'}
-        except Exception as e:
-            logger.warning(f"⚠️ Captcha Attempt {attempt+1} Failed: {e}")
-            reset_driver()
-            
-    return "Error: Server Busy", 500
-
-@app.route('/fetch_result', methods=['POST'])
-def fetch_result():
-    usn = request.form['usn'].strip().upper()
-    captcha = request.form['captcha'].strip()
-    
-    if not (usn.startswith('1DB21CS') or usn.startswith('1DB22CS') or usn.startswith('1DB23CS') or usn.startswith('1DB24CS')):
-        return jsonify({'status': 'error', 'message': 'Invalid USN Series'})
-    
-    try:
-        driver = get_driver()
-        try:
-            if "results.vtu.ac.in" not in driver.current_url: raise Exception("Timeout")
-        except: return jsonify({'status': 'error', 'message': 'Session expired. Reload Captcha.'})
-
-        driver.find_element(By.NAME, "lns").clear()
-        driver.find_element(By.NAME, "lns").send_keys(usn)
-        driver.find_element(By.NAME, "captchacode").clear()
-        driver.find_element(By.NAME, "captchacode").send_keys(captcha)
-        
-        try: driver.find_element(By.XPATH, "//input[@type='submit']").click()
-        except UnexpectedAlertPresentException:
-            alert = driver.switch_to.alert; msg = alert.text; alert.accept(); driver.refresh()
-            return jsonify({'status': 'error', 'message': f"Alert: {msg}"})
-
-        time.sleep(2)
-        try:
-            WebDriverWait(driver, 4).until(EC.alert_is_present())
-            alert = driver.switch_to.alert; msg = alert.text; alert.accept(); driver.refresh()
-            return jsonify({'status': 'error', 'message': f"VTU Says: {msg}"})
-        except: pass
-
-        if len(driver.window_handles) > 1: driver.switch_to.window(driver.window_handles[-1])
-        
-        soup = BeautifulSoup(driver.page_source, 'html.parser')
-        student_data = parse_result_page(soup, usn)
-        
-        if student_data['name'] != "Unknown":
-            students_col.update_one({'usn': usn}, {'$set': student_data}, upsert=True)
-            my_marks = student_data['total_marks']
-            rank = students_col.count_documents({'total_marks': {'$gt': my_marks}}) + 1
-            student_data['rank'] = rank
-
-            if len(driver.window_handles) > 1: driver.close(); driver.switch_to.window(driver.window_handles[0])
-            try: driver.find_element(By.NAME, "lns").clear(); driver.find_element(By.NAME, "captchacode").clear()
-            except: pass
-
-            return jsonify({'status': 'success', 'data': student_data})
-        
-        return jsonify({'status': 'error', 'message': 'Parsing failed. Check USN/Captcha.'})
-
-    except Exception as e:
-        logger.error(f"Fetch Error: {e}")
-        reset_driver()
-        return jsonify({'status': 'error', 'message': "Server Error. Try again."})
-
 @app.route('/leaderboard')
 def leaderboard():
     try:
@@ -293,7 +297,6 @@ def get_analysis():
         category = request.args.get('category', 'overall_fail')
         all_students = list(students_col.find({}, {'_id': 0}))
         failed_count = 0
-        
         for s in all_students:
             is_fail = s.get('class_result') == 'Fail' or any(sub.get('result') == 'F' for sub in s.get('subjects', []))
             if is_fail: failed_count += 1

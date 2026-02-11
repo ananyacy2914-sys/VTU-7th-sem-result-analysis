@@ -247,6 +247,18 @@ def home():
 def health():
     return jsonify({'status': 'healthy', 'timestamp': time.time()})
 
+@app.route('/reload_captcha')
+def reload_captcha():
+    """Dedicated endpoint to reload captcha on user request"""
+    try:
+        logger.info("🔄 User requested captcha reload")
+        reset_driver()
+        time.sleep(1)
+        return get_captcha()
+    except Exception as e:
+        logger.error(f"Reload captcha error: {e}")
+        return jsonify({'error': 'Failed to reload captcha'}), 500
+
 @app.route('/get_captcha')
 def get_captcha():
     max_attempts = 3

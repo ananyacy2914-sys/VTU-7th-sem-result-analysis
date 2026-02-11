@@ -42,117 +42,68 @@ def kill_zombies():
     try:
         subprocess.run(['pkill', '-9', '-f', 'chrome'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         subprocess.run(['pkill', '-9', '-f', 'chromedriver'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        time.sleep(1.5)
-    except Exception as e:
-        logger.warning(f"Zombie cleanup warning: {e}")
+    except: pass
 
 # --- BROWSER SETUP ---
 def create_driver():
     kill_zombies()
     
     chrome_options = Options()
-    # Essential headless flags
+    # Critical flags for Render
     chrome_options.add_argument("--headless=new") 
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--disable-extensions")
-    chrome_options.add_argument("--disable-application-cache")
-    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-    chrome_options.add_argument("--window-size=1280,720")
-    chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+    chrome_options.add_argument("--window-size=1920,1080")
     
-    # Memory optimization for free tier
-    chrome_options.add_argument("--single-process")
-    chrome_options.add_argument("--disable-software-rasterizer")
-    chrome_options.add_argument("--disable-background-timer-throttling")
-    chrome_options.add_argument("--disable-backgrounding-occluded-windows")
-    chrome_options.add_argument("--disable-renderer-backgrounding")
-    
-    # Check for Chrome binary in multiple locations (Render buildpack support)
-    chrome_paths = [
-        os.environ.get('GOOGLE_CHROME_BIN'),
-        os.environ.get('CHROME_BIN'),
-        '/app/.chrome-for-testing/chrome-linux64/chrome',  # Render buildpack
-        '/usr/bin/google-chrome-stable',
-        '/usr/bin/google-chrome',
-        '/usr/bin/chromium-browser'
-    ]
-    
-    chrome_found = False
-    for path in chrome_paths:
-        if path and os.path.exists(path):
-            chrome_options.binary_location = path
-            logger.info(f"✅ Using Chrome at: {path}")
-            chrome_found = True
-            break
-    
-    if not chrome_found:
-        logger.warning("⚠️ Chrome binary not found in standard locations")
-    
-    # Check for ChromeDriver in multiple locations
-    driver_paths = [
-        os.environ.get('CHROMEDRIVER_PATH'),
-        '/app/.chromedriver/bin/chromedriver',  # Render buildpack
-        '/usr/local/bin/chromedriver',
-        '/usr/bin/chromedriver'
-    ]
-    
-    service = None
-    for path in driver_paths:
-        if path and os.path.exists(path):
-            service = Service(path)
-            logger.info(f"✅ Using ChromeDriver: {path}")
-            break
-    
-    if not service:
-        logger.info("📥 Downloading ChromeDriver via webdriver-manager...")
+    # 1. FIND CHROME BINARY
+    chrome_bin = os.environ.get('CHROME_BIN')
+    if not chrome_bin:
+        possible_paths = ['/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser']
+        for p in possible_paths:
+            if os.path.exists(p):
+                chrome_bin = p
+                break
+
+    if chrome_bin:
+        chrome_options.binary_location = chrome_bin
+        logger.info(f"🔹 Found Chrome at: {chrome_bin}")
+        try:
+            # 2. VERSION MATCHING (Fixes 502 Errors)
+            result = subprocess.run([chrome_bin, "--version"], capture_output=True, text=True)
+            ver = result.stdout.strip().split()[-1]
+            logger.info(f"🔹 Detected Version: {ver}")
+            service = Service(ChromeDriverManager(driver_version=ver).install())
+        except Exception as e:
+            logger.warning(f"⚠️ Version match failed, using default: {e}")
+            service = Service(ChromeDriverManager().install())
+    else:
         service = Service(ChromeDriverManager().install())
         
     driver = webdriver.Chrome(service=service, options=chrome_options)
-    driver.set_page_load_timeout(60)
-    driver.implicitly_wait(10)
+    driver.set_page_load_timeout(45)
     return driver
 
 # Global Driver Management
 _driver = None
-_driver_last_used = 0
-DRIVER_TIMEOUT = 300  # Reset after 5 minutes
 
 def get_driver():
-    global _driver, _driver_last_used
-    current_time = time.time()
-    
-    if _driver is None or (current_time - _driver_last_used) > DRIVER_TIMEOUT:
-        reset_driver()
-        logger.info("🚀 Starting new browser session...")
-        try: 
+    global _driver
+    if _driver is None:
+        try: _driver = create_driver()
+        except: 
+            logger.warning("⚠️ Driver creation failed, retrying...")
             _driver = create_driver()
-            _driver_last_used = current_time
-        except Exception as e:
-            logger.error(f"Driver creation failed: {e}")
-            kill_zombies()
-            time.sleep(2)
-            _driver = create_driver()
-            _driver_last_used = current_time
-    else:
-        _driver_last_used = current_time
-        
     return _driver
 
 def reset_driver():
-    global _driver, _driver_last_used
+    global _driver
     if _driver:
-        try: 
-            _driver.quit()
-            logger.info("🛑 Driver quit successfully")
-        except Exception as e:
-            logger.warning(f"Error quitting driver: {e}")
+        try: _driver.quit()
+        except: pass
     _driver = None
-    _driver_last_used = 0
     kill_zombies()
-    time.sleep(1)
-    logger.info("🔄 Driver Reset Complete")
 
 # --- HELPERS ---
 def get_credits_2022_cs_7th(sub_code):
@@ -188,9 +139,7 @@ def parse_result_page(soup, usn):
                 break
         
         div_rows = soup.find_all('div', class_='divTableRow')
-        total_credits = 0
-        total_gp = 0
-        running_total = 0
+        total_credits = 0; total_gp = 0; running_total = 0
         has_fail = False
         
         for row in div_rows[1:]:
@@ -201,7 +150,10 @@ def parse_result_page(soup, usn):
                 marks = cells[4].text.strip()
                 res = cells[5].text.strip()
                 
-                if res == 'F' or int(marks) < 18: 
+                try: marks_int = int(marks)
+                except: marks_int = 0
+                
+                if res in ['F', 'A', 'X'] or (res == 'P' and marks_int < 18):
                     has_fail = True
                 
                 credits = get_credits_2022_cs_7th(code)
@@ -211,7 +163,7 @@ def parse_result_page(soup, usn):
                     total_credits += credits
                     total_gp += (credits * gp)
                 
-                running_total += int(marks)
+                running_total += marks_int
                 data['subjects'].append({'code': code, 'name': sub_name, 'total': marks, 'result': res})
 
         data['total_marks'] = running_total
@@ -221,133 +173,46 @@ def parse_result_page(soup, usn):
             perc = (running_total / 700) * 100 
             data['percentage'] = "{:.2f}%".format(perc)
             
-            if has_fail:
-                data['class_result'] = "Fail"
-            elif perc >= 70: 
-                data['class_result'] = "First Class with Distinction"
-            elif perc >= 60: 
-                data['class_result'] = "First Class"
-            elif perc >= 50: 
-                data['class_result'] = "Second Class"
-            elif perc >= 40: 
-                data['class_result'] = "Pass Class"
-            else: 
-                data['class_result'] = "Fail"
+            if has_fail: data['class_result'] = "Fail"
+            elif perc >= 70: data['class_result'] = "First Class with Distinction"
+            elif perc >= 60: data['class_result'] = "First Class"
+            elif perc >= 50: data['class_result'] = "Second Class"
+            elif perc >= 40: data['class_result'] = "Pass Class"
+            else: data['class_result'] = "Fail"
             
-    except Exception as e:
-        logger.error(f"Parse error: {e}")
+    except: pass
     return data
 
 # --- ROUTES ---
 @app.route('/')
-def home(): 
-    return render_template('index.html')
+def home(): return render_template('index.html')
 
 @app.route('/health')
-def health():
-    return jsonify({'status': 'healthy', 'timestamp': time.time()})
+def health(): return jsonify({'status': 'healthy', 'timestamp': time.time()})
 
 @app.route('/reload_captcha')
 def reload_captcha():
-    """Dedicated endpoint to reload captcha on user request"""
-    try:
-        logger.info("🔄 User requested captcha reload")
-        reset_driver()
-        time.sleep(1)
-        return get_captcha()
-    except Exception as e:
-        logger.error(f"Reload captcha error: {e}")
-        return jsonify({'error': 'Failed to reload captcha'}), 500
+    # Force reset driver and get new captcha
+    reset_driver()
+    return get_captcha()
 
 @app.route('/get_captcha')
 def get_captcha():
     max_attempts = 3
-    
     for attempt in range(max_attempts):
-        driver = None
         try:
-            if attempt == 0:
-                logger.info("🔄 Resetting driver for fresh captcha session")
-                reset_driver()
-                
-            logger.info(f"🔍 Captcha Attempt {attempt+1}/{max_attempts}: Initializing driver...")
             driver = get_driver()
-            
-            logger.info("📡 Loading VTU results page...")
             driver.get("https://results.vtu.ac.in/D25J26Ecbcs/index.php")
             
-            wait = WebDriverWait(driver, 35)
-            wait.until(EC.presence_of_element_located((By.TAG_NAME, "body")))
-            logger.info("✅ Page loaded")
+            wait = WebDriverWait(driver, 20)
+            img = wait.until(EC.presence_of_element_located((By.XPATH, "//img[contains(@src, 'captcha')]")))
             
-            time.sleep(1)
-            
-            img = None
-            selectors = [
-                "//img[contains(@src, 'captcha')]",
-                "//img[contains(@src, 'Captcha')]",
-                "//img[contains(@src, 'CAPTCHA')]",
-                "//img[@id='captcha']",
-                "//img[@name='captcha']",
-                "//img[contains(@alt, 'captcha')]"
-            ]
-            
-            for idx, selector in enumerate(selectors):
-                try:
-                    logger.info(f"Trying selector {idx+1}: {selector}")
-                    img = driver.find_element(By.XPATH, selector)
-                    if img:
-                        logger.info(f"✅ Captcha image found with selector {idx+1}!")
-                        break
-                except Exception as se:
-                    logger.debug(f"Selector {idx+1} failed: {se}")
-                    continue
-            
-            if not img:
-                logger.warning("⚠️ Standard selectors failed, trying to find any image...")
-                imgs = driver.find_elements(By.TAG_NAME, "img")
-                if imgs:
-                    img = imgs[0]
-                    logger.info(f"Found {len(imgs)} images, using first one")
-            
-            if not img:
-                raise Exception("Captcha image not found with any selector")
-            
-            driver.execute_script("arguments[0].scrollIntoView(true);", img)
-            time.sleep(0.8)
-            
-            try:
-                screenshot = img.screenshot_as_png
-            except Exception as screenshot_error:
-                logger.warning(f"Element screenshot failed: {screenshot_error}, trying full page")
-                screenshot = driver.get_screenshot_as_png()
-            
-            if screenshot and len(screenshot) > 100:
-                logger.info(f"✅ Captcha captured successfully (Attempt {attempt+1}, {len(screenshot)} bytes)")
-                return screenshot, 200, {'Content-Type': 'image/png'}
-            else:
-                raise Exception("Screenshot is empty or too small")
-            
-        except TimeoutException as te:
-            logger.error(f"❌ Timeout on attempt {attempt+1}: {str(te)}")
-            reset_driver()
-            time.sleep(3)
-            
-        except WebDriverException as we:
-            logger.error(f"❌ WebDriver error on attempt {attempt+1}: {str(we)}")
-            reset_driver()
-            time.sleep(3)
-            
+            return img.screenshot_as_png, 200, {'Content-Type': 'image/png'}
         except Exception as e:
-            logger.error(f"❌ Captcha Attempt {attempt+1} Failed: {str(e)}")
+            logger.warning(f"⚠️ Captcha Attempt {attempt+1} Failed: {e}")
             reset_driver()
-            time.sleep(2 * (attempt + 1))
             
-    logger.error("❌ All captcha attempts exhausted")
-    reset_driver()
-    return jsonify({
-        'error': 'Failed to load captcha after multiple attempts. Please try again in a moment.'
-    }), 503
+    return "Error: Server Busy", 500
 
 @app.route('/fetch_result', methods=['POST'])
 def fetch_result():
@@ -360,21 +225,13 @@ def fetch_result():
     try:
         driver = get_driver()
         try:
-            current_url = driver.current_url
-            if "results.vtu.ac.in" not in current_url:
-                logger.warning(f"Session on wrong URL: {current_url}")
-                raise Exception("Session Timeout")
-        except:
-            logger.error("Session verification failed")
-            return jsonify({'status': 'error', 'message': 'Session expired. Please reload captcha.'})
+            if "results.vtu.ac.in" not in driver.current_url: raise Exception("Timeout")
+        except: return jsonify({'status': 'error', 'message': 'Session expired. Reload Captcha.'})
 
-        usn_field = driver.find_element(By.NAME, "lns")
-        usn_field.clear()
-        usn_field.send_keys(usn)
-        
-        captcha_field = driver.find_element(By.NAME, "captchacode")
-        captcha_field.clear()
-        captcha_field.send_keys(captcha)
+        driver.find_element(By.NAME, "lns").clear()
+        driver.find_element(By.NAME, "lns").send_keys(usn)
+        driver.find_element(By.NAME, "captchacode").clear()
+        driver.find_element(By.NAME, "captchacode").send_keys(captcha)
         
         try: driver.find_element(By.XPATH, "//input[@type='submit']").click()
         except UnexpectedAlertPresentException:
@@ -382,9 +239,8 @@ def fetch_result():
             return jsonify({'status': 'error', 'message': f"Alert: {msg}"})
 
         time.sleep(2)
-        
         try:
-            WebDriverWait(driver, 5).until(EC.alert_is_present())
+            WebDriverWait(driver, 4).until(EC.alert_is_present())
             alert = driver.switch_to.alert; msg = alert.text; alert.accept(); driver.refresh()
             return jsonify({'status': 'error', 'message': f"VTU Says: {msg}"})
         except: pass
@@ -396,15 +252,12 @@ def fetch_result():
         
         if student_data['name'] != "Unknown":
             students_col.update_one({'usn': usn}, {'$set': student_data}, upsert=True)
-            
             my_marks = student_data['total_marks']
             rank = students_col.count_documents({'total_marks': {'$gt': my_marks}}) + 1
             student_data['rank'] = rank
 
             if len(driver.window_handles) > 1: driver.close(); driver.switch_to.window(driver.window_handles[0])
-            try: 
-                driver.find_element(By.NAME, "lns").clear()
-                driver.find_element(By.NAME, "captchacode").clear()
+            try: driver.find_element(By.NAME, "lns").clear(); driver.find_element(By.NAME, "captchacode").clear()
             except: pass
 
             return jsonify({'status': 'success', 'data': student_data})
@@ -422,11 +275,10 @@ def leaderboard():
         sort_by = request.args.get('sort', 'marks')
         order = request.args.get('order', 'desc')
         data = list(students_col.find({}, {'_id': 0}))
-
         def get_sort_val(s, k):
             try: return float(s.get(k, 0))
             except: return 0.0
-
+        
         reverse_order = (order == 'desc')
         if sort_by == 'sgpa': data.sort(key=lambda x: get_sort_val(x, 'sgpa'), reverse=reverse_order)
         else: data.sort(key=lambda x: get_sort_val(x, 'total_marks'), reverse=reverse_order)
@@ -440,18 +292,13 @@ def get_analysis():
     try:
         category = request.args.get('category', 'overall_fail')
         all_students = list(students_col.find({}, {'_id': 0}))
-        
         failed_count = 0
+        
         for s in all_students:
             is_fail = s.get('class_result') == 'Fail' or any(sub.get('result') == 'F' for sub in s.get('subjects', []))
             if is_fail: failed_count += 1
             
-        stats = {
-            'total': len(all_students),
-            'passed': len(all_students) - failed_count,
-            'failed': failed_count
-        }
-
+        stats = {'total': len(all_students), 'passed': len(all_students) - failed_count, 'failed': failed_count}
         response_data = []
 
         if category == 'overall_fail':
@@ -461,35 +308,24 @@ def get_analysis():
                     s_copy = s.copy()
                     s_copy['fail_summary'] = ", ".join(failed_subs) if failed_subs else "Fail"
                     response_data.append(s_copy)
-                    
-        elif category == 'fcd':
-            response_data = [s for s in all_students if "Distinction" in s.get('class_result', '')]
-        elif category == 'fc':
-            response_data = [s for s in all_students if s.get('class_result') == 'First Class']
-        elif category == 'sc':
-            response_data = [s for s in all_students if s.get('class_result') == 'Second Class']
+        elif category in ['fcd', 'fc', 'sc']:
+            lookup = {'fcd': "Distinction", 'fc': "First Class", 'sc': "Second Class"}
+            response_data = [s for s in all_students if lookup[category] in s.get('class_result', '')]
         else:
-            # Subject specific analysis
-            subject_code = category
-            subj_total = 0
-            subj_pass = 0
+            subj_total = 0; subj_pass = 0
             for s in all_students:
-                subj = next((item for item in s.get('subjects', []) if item['code'] == subject_code), None)
+                subj = next((item for item in s.get('subjects', []) if item['code'] == category), None)
                 if subj:
                     subj_total += 1
-                    if subj['result'] == 'P': 
-                        subj_pass += 1
+                    if subj['result'] == 'P': subj_pass += 1
                     else:
                         s_copy = s.copy()
                         s_copy['fail_marks'] = subj['total']
                         response_data.append(s_copy)
-            
             stats = {'total': subj_total, 'passed': subj_pass, 'failed': subj_total - subj_pass}
 
         return jsonify({'status': 'success', 'stats': stats, 'students': response_data})
-
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)})
+    except Exception as e: return jsonify({'status': 'error', 'message': str(e)})
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))

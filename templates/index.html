@@ -185,20 +185,21 @@
 
     <div id="leaderboard" class="tab-content">
         <div class="card">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
                 <h2>🏆 Class Leaderboard</h2>
-                <div>
-                    <select id="sort-by" style="padding: 5px;">
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="text" id="search-input" placeholder="Search by USN or Name..." 
+                           style="padding: 8px 12px; border: 2px solid var(--border); border-radius: 6px; font-size: 0.9rem; min-width: 200px;">
+                    <select id="sort-by" style="padding: 8px; border: 2px solid var(--border); border-radius: 6px;">
                         <option value="marks">Marks</option>
                         <option value="sgpa">SGPA</option>
                     </select>
-                    <button id="load-leaderboard" class="btn-secondary" style="padding: 5px 10px;">Load</button>
+                    <button id="load-leaderboard" class="btn-secondary" style="padding: 8px 16px;">Load</button>
                 </div>
             </div>
             <div id="leaderboard-content"></div>
         </div>
     </div>
-
     <div id="analysis" class="tab-content">
         <div class="card">
             <h2>📊 Performance Analysis</h2>
@@ -211,8 +212,8 @@
                 <button class="filter-btn" data-category="BCS702">BCS702</button>
                 <button class="filter-btn" data-category="BCS703">BCS703</button>
                 <button class="filter-btn" data-category="BCS714">BCS714</button>
-                <button class="filter-btn" data-category="BCS755">BCS755</button>
-                <button class="filter-btn" data-category="BCSP786">BCSP786</button>
+                <button class="filter-btn" data-category="BEE755B">BEE755B</button>
+                <button class="filter-btn" data-category="BCS786">BCS786</button>
             </div>
             
             <div id="analysis-stats" class="stat-grid"></div>
@@ -339,15 +340,20 @@
     };
 
     // --- LEADERBOARD ---
-    document.getElementById('load-leaderboard').onclick = async () => {
-        const sort = document.getElementById('sort-by').value;
-        const div = document.getElementById('leaderboard-content');
-        div.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Loading...</p></div>';
+    // --- LEADERBOARD ---
+document.getElementById('load-leaderboard').onclick = async () => {
+    const sort = document.getElementById('sort-by').value;
+    const search = document.getElementById('search-input').value.trim();
+    const div = document.getElementById('leaderboard-content');
+    div.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Loading...</p></div>';
 
-        const res = await fetch(`/leaderboard?sort=${sort}`);
-        const json = await res.json();
+    const res = await fetch(`/leaderboard?sort=${sort}&search=${encodeURIComponent(search)}`);
+    const json = await res.json();
 
-        if(json.status === 'success') {
+    if(json.status === 'success') {
+        if(json.data.length === 0) {
+            div.innerHTML = '<div class="error-message">No students found matching your search.</div>';
+        } else {
             let rows = json.data.map(s => `
                 <tr>
                     <td>#${s.rank}</td>
@@ -364,9 +370,20 @@
                     <thead><tr><th>Rank</th><th>USN</th><th>Name</th><th>Marks</th><th>SGPA</th><th>Result</th></tr></thead>
                     <tbody>${rows}</tbody>
                 </table>
+                <p style="margin-top: 15px; color: var(--text-light); font-size: 0.9rem;">
+                    Showing ${json.data.length} student${json.data.length !== 1 ? 's' : ''}
+                </p>
             `;
         }
-    };
+    }
+};
+
+// Allow Enter key to trigger search
+document.getElementById('search-input').addEventListener('keypress', (e) => {
+    if(e.key === 'Enter') {
+        document.getElementById('load-leaderboard').click();
+    }
+});
 
     // --- ANALYSIS ---
     document.querySelectorAll('.filter-btn').forEach(btn => {

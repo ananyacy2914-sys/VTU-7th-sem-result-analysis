@@ -161,8 +161,8 @@ def get_credits_2022_cs_7th(sub_code):
     if code.startswith("BCS702"): return 4  
     if code.startswith("BCS703"): return 4  
     if code.startswith("BCS714"): return 3  
-    if code.startswith("BCS755"): return 3  
-    if code.startswith("BCSP786"): return 6 
+    if code.startswith("BEE755B"): return 3  
+    if code.startswith("BCS786"): return 6 
     return 0
 
 def calculate_grade_point(marks):
@@ -339,7 +339,7 @@ def get_captcha():
 
 @app.route('/fetch_result', methods=['POST'])
 def fetch_result():
-    usn = request.form['usn'].strip().upper()
+    usn = request.form['usn'].strip().upper()  # Already uppercase
     captcha = request.form['captcha'].strip()
     
     if not (usn.startswith('1DB21CS') or usn.startswith('1DB22CS') or usn.startswith('1DB23CS') or usn.startswith('1DB24CS')):
@@ -409,7 +409,20 @@ def leaderboard():
     try:
         sort_by = request.args.get('sort', 'marks')
         order = request.args.get('order', 'desc')
-        data = list(students_col.find({}, {'_id': 0}))
+        search = request.args.get('search', '').strip().upper()  # Add search parameter
+        
+        # Build query filter
+        query = {}
+        if search:
+            # Search by USN or Name (case-insensitive)
+            query = {
+                '$or': [
+                    {'usn': {'$regex': search, '$options': 'i'}},
+                    {'name': {'$regex': search, '$options': 'i'}}
+                ]
+            }
+        
+        data = list(students_col.find(query, {'_id': 0}))
 
         def get_sort_val(s, k):
             try: return float(s.get(k, 0))
@@ -422,7 +435,6 @@ def leaderboard():
         for i, s in enumerate(data): s['rank'] = i + 1
         return jsonify({'status': 'success', 'data': data})
     except Exception as e: return jsonify({'status': 'error', 'message': str(e)})
-
 @app.route('/get_analysis')
 def get_analysis():
     try:

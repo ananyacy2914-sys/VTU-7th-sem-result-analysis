@@ -3,335 +3,859 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VTU 7th Sem Result Portal</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <title>DBIT Result Portal - 7th Sem Dec-Jan 2026</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; background: #5865F2; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); }
-        .glass-panel { background: rgba(255, 255, 255, 0.98); border-radius: 1rem; box-shadow: 0 10px 40px -10px rgba(0,0,0,0.2); }
-        .rank-1 { color: #d97706; font-size: 1.2rem; } 
-        .rank-2 { color: #64748b; font-size: 1.1rem; } 
-        .rank-3 { color: #b45309; font-size: 1.1rem; } 
-        .status-P { color: #16a34a; background: #dcfce7; padding: 2px 8px; border-radius: 4px; font-weight: 700; }
-        .status-F { color: #dc2626; background: #fee2e2; padding: 2px 8px; border-radius: 4px; font-weight: 700; }
-        .tab-active { background-color: white !important; color: #4f46e5 !important; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .tab-inactive { color: white; opacity: 0.9; }
-        .tab-inactive:hover { background-color: rgba(255,255,255,0.1); }
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #1e293b;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            position: relative;
+        }
+        
+        /* Animated background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        .container {
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* Header */
+        .page-header {
+            text-align: center;
+            margin: 2rem 0 3rem;
+            animation: fadeInDown 0.8s ease;
+        }
+        
+        .page-header h1 {
+            color: white;
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .page-header p {
+            color: rgba(255,255,255,0.9);
+            font-size: 1.1rem;
+        }
+        
+        /* Cards */
+        .card {
+            border-radius: 20px;
+            border: none;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+            background: white;
+            animation: fadeInUp 0.8s ease;
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 25px 70px rgba(0,0,0,0.2);
+        }
+        
+        /* Navigation Pills */
+        .nav-pills {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            padding: 0.5rem;
+            border-radius: 50px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .nav-pills .nav-link {
+            color: white;
+            border-radius: 50px;
+            padding: 0.8rem 2rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-pills .nav-link.active {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            box-shadow: 0 4px 15px rgba(99,102,241,0.4);
+        }
+        
+        /* Form Elements */
+        .form-control {
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 0.9rem 1.2rem;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(99,102,241,0.1);
+        }
+        
+        /* Captcha Section */
+        .captcha-section {
+            background: linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 100%);
+            padding: 1.5rem;
+            border-radius: 15px;
+            margin-bottom: 1.5rem;
+            border: 2px dashed var(--primary);
+        }
+        
+        #captcha-img {
+            border-radius: 10px;
+            border: 3px solid white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            max-width: 100%;
+            min-height: 60px;
+            background: #f0f0f0;
+        }
+        
+        /* Submit Button */
+        .btn-submit {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 1rem;
+            width: 100%;
+            font-weight: 700;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(99,102,241,0.3);
+        }
+        
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(99,102,241,0.4);
+        }
+        
+        /* Stats Container */
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-box {
+            padding: 2rem 1.5rem;
+            border-radius: 20px;
+            text-align: center;
+            color: white;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .stat-box:hover {
+            transform: translateY(-5px) scale(1.02);
+        }
+        
+        .bg-sgpa { background: linear-gradient(135deg, #10b981, #059669); }
+        .bg-marks { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+        .bg-rank { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        
+        .stat-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            opacity: 0.9;
+        }
+        
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            line-height: 1;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-sublabel {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin-top: 0.5rem;
+            font-weight: 600;
+        }
+        
+        /* Table */
+        .table {
+            margin-bottom: 0;
+        }
+        
+        .table thead {
+            background: linear-gradient(135deg, var(--dark), #334155);
+            color: white;
+        }
+        
+        .table thead th {
+            padding: 1rem;
+            font-weight: 600;
+            border: none;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+        }
+        
+        .table thead th.sortable {
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s ease;
+        }
+        
+        .table thead th.sortable:hover {
+            background-color: rgba(255,255,255,0.1);
+        }
+        
+        .table tbody tr {
+            transition: all 0.2s ease;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .table tbody tr:hover {
+            background: #f9fafb;
+            transform: scale(1.01);
+        }
+        
+        /* Leaderboard Ranks */
+        .rank-1 {
+            background: linear-gradient(135deg, #fef3c7, #fde68a) !important;
+            color: #78350f;
+            font-weight: bold;
+        }
+        
+        .rank-2 {
+            background: linear-gradient(135deg, #f3f4f6, #e5e7eb) !important;
+            color: #374151;
+            font-weight: bold;
+        }
+        
+        .rank-3 {
+            background: linear-gradient(135deg, #fed7aa, #fdba74) !important;
+            color: #9a3412;
+            font-weight: bold;
+        }
+        
+        /* Status Messages */
+        #status-msg {
+            padding: 1rem;
+            border-radius: 10px;
+            font-weight: 600;
+            margin-top: 1rem;
+        }
+        
+        .text-danger {
+            color: #dc2626 !important;
+            background: #fee2e2;
+            border: 1px solid #fca5a5;
+        }
+        
+        .text-success {
+            color: #065f46 !important;
+            background: #d1fae5;
+            border: 1px solid #6ee7b7;
+        }
+        
+        /* Performance Section Header */
+        .performance-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: linear-gradient(135deg, #f0f4ff, #e0e7ff);
+            border-radius: 12px;
+            border-left: 5px solid var(--primary);
+        }
+        
+        .performance-stats {
+            display: flex;
+            gap: 2rem;
+        }
+        
+        .performance-stat {
+            text-align: center;
+        }
+        
+        .performance-stat-label {
+            font-size: 0.8rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.25rem;
+        }
+        
+        .performance-stat-value {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--primary);
+        }
+        
+        /* Animations */
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .page-header h1 {
+                font-size: 2rem;
+            }
+            
+            .stat-value {
+                font-size: 2rem;
+            }
+            
+            .stats-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .performance-stats {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+        }
+        
+        /* Student Name Header */
+        #student-name {
+            color: var(--dark);
+            font-weight: 700;
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, #f0f4ff, #e0e7ff);
+            border-radius: 15px;
+            border-left: 5px solid var(--primary);
+        }
     </style>
 </head>
-<body class="min-h-screen flex flex-col items-center py-8 px-4 text-gray-800">
+<body>
 
-    <div class="text-center mb-8">
-        <h1 class="text-4xl font-black text-white drop-shadow-md tracking-tight">🎓 VTU RESULT PORTAL</h1>
-        <p class="text-indigo-100 mt-2 font-medium">7th Semester | 2022 Scheme</p>
+<div class="container py-5">
+    
+    <!-- Header -->
+    <div class="page-header">
+        <h1><i class="fas fa-graduation-cap"></i> DBIT Result Portal</h1>
+        <p>7th Semester December-January 2026 Results - 1DB23CS & 1DB24CS Only</p>
     </div>
 
-    <div class="flex bg-white/20 p-1.5 rounded-full backdrop-blur-md border border-white/30 shadow-lg mb-8">
-        <button onclick="switchView('home')" id="btn-home" class="px-6 py-2 rounded-full font-bold text-sm transition-all tab-active">
-            🔍 Check Result
-        </button>
-        <button onclick="switchView('leaderboard')" id="btn-lead" class="px-6 py-2 rounded-full font-bold text-sm transition-all tab-inactive">
-            🏆 Leaderboard
-        </button>
-        <button onclick="switchView('analysis')" id="btn-anal" class="px-6 py-2 rounded-full font-bold text-sm transition-all tab-inactive">
-            📊 Analysis
-        </button>
-    </div>
+    <!-- Tab Navigation -->
+    <ul class="nav nav-pills justify-content-center mb-5" id="pills-tab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="pills-check-tab" data-bs-toggle="pill" data-bs-target="#pills-check" type="button">
+                <i class="fas fa-search"></i> Check Result
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="pills-leaderboard-tab" data-bs-toggle="pill" data-bs-target="#pills-leaderboard" type="button" onclick="fetchLeaderboard()">
+                <i class="fas fa-trophy"></i> Leaderboard
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="pills-analysis-tab" data-bs-toggle="pill" data-bs-target="#pills-analysis" type="button" onclick="loadAnalysis()">
+                <i class="fas fa-chart-bar"></i> Analysis
+            </button>
+        </li>
+    </ul>
 
-    <div id="main-container" class="w-full max-w-6xl">
+    <div class="tab-content" id="pills-tabContent">
         
-        <div id="view-home" class="flex flex-col md:flex-row gap-6 items-start justify-center">
-            <div class="w-full md:w-1/3 glass-panel p-8">
-                <h2 class="text-xl font-bold text-gray-800 border-b pb-2 mb-6">Student Details</h2>
-                <form id="resultForm" class="space-y-5">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">USN</label>
-                        <input type="text" name="usn" placeholder="1DB22CS & 1DB23CS" class="w-full bg-gray-50 border border-gray-300 p-3 rounded-lg font-mono font-bold uppercase" required>
+        <!-- Check Result Tab -->
+        <div class="tab-pane fade show active" id="pills-check" role="tabpanel">
+            <div class="row justify-content-center">
+                <div class="col-lg-5 col-md-6 mb-4">
+                    <div class="card p-4">
+                        <h4 class="text-center mb-3 fw-bold">
+                            <i class="fas fa-user-graduate text-primary"></i> Enter Your Details
+                        </h4>
+                        
+                        <div class="captcha-section text-center">
+                            <img id="captcha-img" src="" alt="Loading captcha..." onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%2260%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22200%22 height=%2260%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-family=%22Arial%22 font-size=%2214%22 fill=%22%23999%22%3ELoading...%3C/text%3E%3C/svg%3E';">
+                            <br>
+                            <a href="#" onclick="loadCaptcha(); return false;" class="text-decoration-none fw-bold text-primary mt-2 d-inline-block">
+                                <i class="fas fa-sync-alt"></i> Reload Captcha
+                            </a>
+                        </div>
+
+                        <form id="resultForm">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-id-card text-primary"></i> University Seat Number
+                                </label>
+                                <input type="text" name="usn" id="usn-input" class="form-control" placeholder="1DB23CS001" required maxlength="10">
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle"></i> Only 1DB23CS and 1DB24CS allowed
+                                </small>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-shield-alt text-primary"></i> Enter Captcha Code
+                                </label>
+                                <input type="text" name="captcha" class="form-control" placeholder="Type the code above" required autocomplete="off">
+                            </div>
+                            <button type="submit" class="btn-submit">
+                                <i class="fas fa-search"></i> GET MY RESULT
+                            </button>
+                        </form>
+                        <div id="status-msg"></div>
                     </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Captcha</label>
-                        <div class="flex gap-2">
-                            <input type="text" name="captcha" placeholder="Code" class="flex-1 bg-gray-50 border border-gray-300 p-3 rounded-lg font-mono font-bold" required>
-                            <img id="captchaImg" src="/get_captcha" onclick="refreshCaptcha()" class="w-28 h-[50px] object-fill rounded cursor-pointer border bg-white">
+                </div>
+
+                <!-- Result Display -->
+                <div class="col-lg-7 col-md-6" id="result-section" style="display:none;">
+                    <div class="card p-4">
+                        <div id="student-name"></div>
+                        
+                        <div class="stats-container">
+                            <div class="stat-box bg-sgpa">
+                                <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
+                                <div class="stat-label">SGPA</div>
+                                <div class="stat-value" id="sgpa-display">0.00</div>
+                                <div class="stat-sublabel" id="perc-display">0.00%</div>
+                            </div>
+                            <div class="stat-box bg-marks">
+                                <div class="stat-icon"><i class="fas fa-star"></i></div>
+                                <div class="stat-label">Total Marks</div>
+                                <div class="stat-value" id="total-marks-display">0</div>
+                                <div class="stat-sublabel">Out of 700</div>
+                            </div>
+                            <div class="stat-box bg-rank">
+                                <div class="stat-icon"><i class="fas fa-medal"></i></div>
+                                <div class="stat-label">University Rank</div>
+                                <div class="stat-value" id="rank-display">#0</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Performance Summary Header -->
+                        <div class="performance-header">
+                            <div>
+                                <h5 class="mb-0"><i class="fas fa-book text-primary"></i> Subject-wise Performance</h5>
+                            </div>
+                            <div class="performance-stats">
+                                <div class="performance-stat">
+                                    <div class="performance-stat-label">Total Marks</div>
+                                    <div class="performance-stat-value" id="perf-marks">0</div>
+                                </div>
+                                <div class="performance-stat">
+                                    <div class="performance-stat-label">Percentage</div>
+                                    <div class="performance-stat-value" id="perf-percentage">0%</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th><i class="fas fa-code"></i> Code</th>
+                                        <th><i class="fas fa-book-open"></i> Subject</th>
+                                        <th><i class="fas fa-calculator"></i> Marks</th>
+                                        <th><i class="fas fa-check-circle"></i> Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="marks-body"></tbody>
+                            </table>
                         </div>
                     </div>
-                    <button type="submit" id="subBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white p-3.5 rounded-lg font-bold shadow-lg transition-all">
-                        GET RESULT
-                    </button>
-                </form>
-            </div>
-
-            <div id="result-card" class="hidden w-full md:w-2/3 glass-panel p-8 relative">
-                <div class="flex justify-between items-center border-b pb-4 mb-4">
-                    <div>
-                        <h2 id="res-name" class="text-2xl font-black text-gray-800">NAME</h2>
-                        <span id="res-usn" class="font-mono text-gray-500 font-medium">USN</span>
-                    </div>
-                    <span id="res-class" class="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full border border-emerald-200">PASS</span>
-                </div>
-                
-                <div class="grid grid-cols-3 gap-4 mb-6">
-                    <div class="bg-emerald-500 text-white p-3 rounded-xl text-center shadow">
-                        <div class="text-xs font-bold opacity-75">SGPA</div>
-                        <div id="res-sgpa" class="text-3xl font-black">0.00</div>
-                    </div>
-                    <div class="bg-blue-600 text-white p-3 rounded-xl text-center shadow">
-                        <div class="text-xs font-bold opacity-75">MARKS</div>
-                        <div id="res-marks" class="text-3xl font-black">0</div>
-                    </div>
-                    <div class="bg-amber-500 text-white p-3 rounded-xl text-center shadow">
-                        <div class="text-xs font-bold opacity-75">RANK</div>
-                        <div id="res-rank" class="text-3xl font-black">#0</div>
-                    </div>
-                </div>
-
-                <div class="overflow-hidden rounded-lg border border-gray-200">
-                    <table class="w-full text-sm">
-                        <thead class="bg-gray-50 text-gray-500 font-bold uppercase text-xs">
-                            <tr>
-                                <th class="p-3 text-left">Subject</th>
-                                <th class="p-3 text-center">Marks</th>
-                                <th class="p-3 text-right">Result</th>
-                            </tr>
-                        </thead>
-                        <tbody id="subject-body" class="divide-y divide-gray-100 bg-white"></tbody>
-                    </table>
-                </div>
-            </div>
-            
-            <div id="placeholder-card" class="w-full md:w-2/3 glass-panel p-12 flex flex-col items-center justify-center text-center text-gray-400 min-h-[400px]">
-                <div class="bg-gray-50 p-6 rounded-full mb-4">📄</div>
-                <h3 class="font-bold text-xl text-gray-600">Ready to Fetch</h3>
-                <p class="text-sm">Enter details to view result</p>
-            </div>
-        </div>
-
-        <div id="view-leaderboard" class="hidden">
-            <div class="bg-white rounded-xl shadow-2xl overflow-hidden">
-                <div class="p-6 border-b flex justify-between items-center bg-gray-50">
-                    <h2 class="text-xl font-black text-gray-700">🏆 Class Leaderboard</h2>
-                    <input type="text" id="lbSearch" onkeyup="filterLeaderboard()" placeholder="Search Name..." class="border p-2 rounded text-sm w-64">
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left">
-                        <thead class="bg-gray-800 text-white text-xs uppercase font-bold">
-                            <tr>
-                                <th class="p-4 w-16 text-center">Rank</th>
-                                <th class="p-4">USN</th>
-                                <th class="p-4">Name</th>
-                                <th class="p-4 text-center cursor-pointer" onclick="loadLeaderboard('marks')">Marks ↕</th>
-                                <th class="p-4 text-center cursor-pointer" onclick="loadLeaderboard('sgpa')">SGPA ↕</th>
-                                <th class="p-4 text-center">Result</th>
-                            </tr>
-                        </thead>
-                        <tbody id="lb-body" class="text-sm font-medium text-gray-700 divide-y"></tbody>
-                    </table>
                 </div>
             </div>
         </div>
 
-        <div id="view-analysis" class="hidden">
-            <div class="bg-white rounded-xl shadow-2xl overflow-hidden p-6">
-                
-                <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 border-b pb-6">
-                    <h2 class="text-2xl font-black text-red-500 flex items-center gap-2">
-                        📊 Performance Analysis
-                    </h2>
-                    <div class="flex gap-2 w-full md:w-auto">
-                        <select id="anal-category" class="border-2 border-indigo-100 p-2.5 rounded-lg font-bold text-gray-700 text-sm focus:border-indigo-500 outline-none w-full md:w-80">
-                            <optgroup label="General Analysis">
-                                <option value="overall_fail">Overall Failures (All Subjects)</option>
-                                <option value="fcd">First Class with Distinction (>=70%)</option>
-                                <option value="fc">First Class (60% - 69%)</option>
-                                <option value="sc">Second Class (50% - 59%)</option>
-                            </optgroup>
-                            <optgroup label="Subject Failure Analysis">
-                                <option value="BCS701">BCS701</option>
-                                <option value="BCS702">BCS702</option>
-                                <option value="BCS703">BCS703</option>
-                                <option value="BCS714">BCS714</option>
-                                <option value="BCS755">BCS755</option>
-                                <option value="BCS755">BCS786</option>
-                            </optgroup>
-                        </select>
-                        <button onclick="runAnalysis()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-bold shadow transition">
-                            Analyze
-                        </button>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div class="bg-blue-500 text-white p-6 rounded-xl shadow-lg text-center">
-                        <div class="text-sm font-bold opacity-80 uppercase">Total Found</div>
-                        <div id="stat-total" class="text-5xl font-black mt-2">-</div>
-                    </div>
-                    <div class="bg-emerald-500 text-white p-6 rounded-xl shadow-lg text-center">
-                        <div class="text-sm font-bold opacity-80 uppercase">Passed</div>
-                        <div id="stat-pass" class="text-5xl font-black mt-2">-</div>
-                    </div>
-                    <div class="bg-red-500 text-white p-6 rounded-xl shadow-lg text-center">
-                        <div class="text-sm font-bold opacity-80 uppercase">Failed</div>
-                        <div id="stat-fail" class="text-5xl font-black mt-2">-</div>
-                    </div>
-                </div>
-
-                <div class="overflow-hidden rounded-lg border border-gray-200">
-                    <div class="bg-red-50 p-3 border-b border-red-100 font-bold text-red-700 text-sm flex justify-between">
-                        <span>📄 Student List</span>
-                        <span id="list-count" class="bg-white px-2 rounded text-xs border py-0.5">0 Students</span>
-                    </div>
-                    <table class="w-full text-sm text-left">
-                        <thead class="bg-gray-100 text-gray-600 font-bold uppercase text-xs border-b">
+        <!-- Leaderboard Tab -->
+        <div class="tab-pane fade" id="pills-leaderboard" role="tabpanel">
+            <div class="card p-4">
+                <h3 class="text-center mb-4">
+                    <i class="fas fa-crown text-warning"></i> Top Performers Leaderboard
+                </h3>
+                <div class="table-responsive">
+                    <table class="table table-hover text-center align-middle">
+                        <thead>
                             <tr>
-                                <th class="p-3">USN</th>
-                                <th class="p-3">Name</th>
-                                <th class="p-3">Data / Marks</th>
-                                <th class="p-3 text-right">Status</th>
+                                <th class="sortable" onclick="toggleSort('rank')">
+                                    <i class="fas fa-hashtag"></i> Rank <span id="icon-rank"></span>
+                                </th>
+                                <th><i class="fas fa-id-badge"></i> USN</th>
+                                <th><i class="fas fa-user"></i> Name</th>
+                                <th class="sortable" onclick="toggleSort('total_marks')">
+                                    <i class="fas fa-chart-bar"></i> Marks <span id="icon-total_marks">▼</span>
+                                </th>
+                                <th class="sortable" onclick="toggleSort('sgpa')">
+                                    <i class="fas fa-graduation-cap"></i> SGPA <span id="icon-sgpa"></span>
+                                </th>
+                                <th><i class="fas fa-percent"></i> Percentage</th>
                             </tr>
                         </thead>
-                        <tbody id="anal-body" class="bg-white divide-y divide-gray-100">
-                            <tr><td colspan="4" class="p-8 text-center text-gray-400">Select a category and click Analyze</td></tr>
+                        <tbody id="leaderboard-body">
+                            <tr><td colspan="6">Loading...</td></tr>
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
 
+        <!-- Analysis Tab -->
+        <div class="tab-pane fade" id="pills-analysis" role="tabpanel">
+            <div class="card p-4">
+                <h3 class="text-center mb-4">
+                    <i class="fas fa-chart-bar text-info"></i> Subject-wise Analysis
+                </h3>
+                
+                <!-- Filter Buttons -->
+                <div class="mb-4">
+                    <h5 class="mb-3">Select Category:</h5>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button class="btn btn-sm btn-outline-danger filter-btn active" data-category="overall_fail">
+                            <i class="fas fa-exclamation-triangle"></i> Overall Failures
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary filter-btn" data-category="BCS701">BCS701</button>
+                        <button class="btn btn-sm btn-outline-primary filter-btn" data-category="BCS702">BCS702</button>
+                        <button class="btn btn-sm btn-outline-primary filter-btn" data-category="BCS703">BCS703</button>
+                        <button class="btn btn-sm btn-outline-primary filter-btn" data-category="BCS714A">BCS714A</button>
+                        <button class="btn btn-sm btn-outline-primary filter-btn" data-category="BCS714D">BCS714D</button>
+                        <button class="btn btn-sm btn-outline-primary filter-btn" data-category="BEE755B">BEE755B</button>
+                        <button class="btn btn-sm btn-outline-primary filter-btn" data-category="BCS786">BCS786</button>
+                    </div>
+                </div>
+                
+                <!-- Statistics Summary -->
+                <div class="row mb-4" id="analysis-stats">
+                    <div class="col-md-4">
+                        <div class="text-center p-3 bg-light rounded">
+                            <h2 class="mb-0 text-primary" id="stat-total">0</h2>
+                            <small class="text-muted">Total Students</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center p-3 bg-light rounded">
+                            <h2 class="mb-0 text-success" id="stat-passed">0</h2>
+                            <small class="text-muted">Passed</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center p-3 bg-light rounded">
+                            <h2 class="mb-0 text-danger" id="stat-failed">0</h2>
+                            <small class="text-muted">Failed</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Analysis Results Table -->
+                <div id="analysis-content">
+                    <p class="text-center text-muted">Select a category to view analysis</p>
+                </div>
+            </div>
+        </div>
     </div>
+</div>
 
-    <div class="mt-12 text-indigo-200 text-xs font-medium">Designed & Developed by Astitva & Ananya C Y</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // --- CAPTCHA & SETUP ---
+    function loadCaptcha() {
+        const img = document.getElementById('captcha-img');
+        img.src = "/get_captcha?" + new Date().getTime();
+    }
+    window.onload = loadCaptcha;
 
-    <script>
-        // --- VIEW SWITCHER ---
-        function switchView(view) {
-            ['home', 'leaderboard', 'analysis'].forEach(v => {
-                $(`#view-${v}`).addClass('hidden');
-                $(`#btn-${v.substring(0,4)}`).removeClass('tab-active').addClass('tab-inactive');
-            });
-            $(`#view-${view}`).removeClass('hidden');
-            let btnId = view === 'home' ? 'btn-home' : (view === 'leaderboard' ? 'btn-lead' : 'btn-anal');
-            $(`#${btnId}`).addClass('tab-active').removeClass('tab-inactive');
+    // Real-time USN validation
+    document.addEventListener('DOMContentLoaded', function() {
+        const usnInput = document.getElementById('usn-input');
+        
+        usnInput.addEventListener('input', function(e) {
+            let value = e.target.value.toUpperCase();
+            e.target.value = value;
             
-            if(view === 'leaderboard') loadLeaderboard();
+            // Visual feedback
+            if (value.length > 0) {
+                if (value.startsWith('1DB23CS') || value.startsWith('1DB24CS')) {
+                    e.target.style.borderColor = '#10b981';
+                    e.target.style.backgroundColor = '#f0fdf4';
+                } else {
+                    e.target.style.borderColor = '#ef4444';
+                    e.target.style.backgroundColor = '#fef2f2';
+                }
+            } else {
+                e.target.style.borderColor = '#e2e8f0';
+                e.target.style.backgroundColor = 'white';
+            }
+        });
+    });
+
+    // --- FETCH RESULT LOGIC ---
+    document.getElementById('resultForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        // Validate USN
+        const usn = this.usn.value.trim().toUpperCase();
+        const status = document.getElementById('status-msg');
+        
+        if (!usn.startsWith('1DB23CS') && !usn.startsWith('1DB24CS')) {
+            status.className = 'text-danger';
+            status.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Invalid USN! Only 1DB23CS or 1DB24CS allowed';
+            return;
+        }
+        
+        if (usn.length !== 10) {
+            status.className = 'text-danger';
+            status.innerHTML = '<i class="fas fa-exclamation-triangle"></i> USN must be exactly 10 characters';
+            return;
         }
 
-        // --- HOME LOGIC ---
-        function refreshCaptcha() { $('#captchaImg').attr('src', '/get_captcha?' + Date.now()); }
+        const btn = document.querySelector('.btn-submit');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Fetching...';
+        status.innerHTML = '';
+        document.getElementById('result-section').style.display = 'none';
 
-        $('#resultForm').submit(function(e) {
-            e.preventDefault();
-            const btn = $('#subBtn');
-            btn.text('FETCHING...').prop('disabled', true).addClass('opacity-75');
+        try {
+            const res = await fetch('/fetch_result', { method: 'POST', body: new FormData(this) });
+            const data = await res.json();
 
-            $.post('/fetch_result', $(this).serialize(), function(r) {
-                btn.text('GET RESULT').prop('disabled', false).removeClass('opacity-75');
-                if(r.status === 'success') {
-                    const d = r.data;
-                    $('#res-name').text(d.name);
-                    $('#res-usn').text(d.usn);
-                    $('#res-class').text(d.class_result);
-                    $('#res-sgpa').text(d.sgpa);
-                    $('#res-marks').text(d.total_marks);
-                    $('#res-rank').text('#' + d.rank);
+            if (data.status === 'success') {
+                const s = data.data;
+                
+                document.getElementById('student-name').innerHTML = 
+                    `<i class="fas fa-user-circle"></i> ${s.name}`;
+                document.getElementById('sgpa-display').innerText = s.sgpa;
+                document.getElementById('perc-display').innerText = s.percentage;
+                document.getElementById('total-marks-display').innerText = s.total_marks;
+                document.getElementById('rank-display').innerText = "#" + data.ranks.uni_rank;
+                
+                // Performance header
+                document.getElementById('perf-marks').innerText = s.total_marks;
+                document.getElementById('perf-percentage').innerText = s.percentage;
 
-                    let rows = '';
-                    d.subjects.forEach(s => {
-                        let color = s.result === 'P' ? 'text-emerald-600' : 'text-red-600';
-                        rows += `<tr class="hover:bg-gray-50">
-                            <td class="p-3 font-mono text-gray-500 font-bold text-xs">${s.code} <span class="text-gray-800 ml-2 text-sm">${s.name}</span></td>
-                            <td class="p-3 text-center font-bold text-gray-700">${s.total}</td>
-                            <td class="p-3 text-right font-bold ${color}">${s.result}</td>
-                        </tr>`;
-                    });
-                    $('#subject-body').html(rows);
-                    $('#placeholder-card').addClass('hidden');
-                    $('#result-card').removeClass('hidden');
-                    refreshCaptcha();
-                } else {
-                    alert(r.message);
-                    if(r.message.includes('Captcha')) refreshCaptcha();
-                }
+                let rows = '';
+                s.subjects.forEach(sub => {
+                    const statusClass = sub.result === 'P' ? 'text-success' : 'text-danger';
+                    const statusIcon = sub.result === 'P' ? '✓' : '✗';
+                    rows += `
+                        <tr>
+                            <td class="fw-bold text-secondary">${sub.code}</td>
+                            <td>${sub.name}</td>
+                            <td class="fw-bold">${sub.total}</td>
+                            <td class="${statusClass} fw-bold">${statusIcon} ${sub.result === 'P' ? 'Pass' : 'Fail'}</td>
+                        </tr>
+                    `;
+                });
+                document.getElementById('marks-body').innerHTML = rows;
+                document.getElementById('result-section').style.display = 'block';
+                
+                // Scroll to results
+                document.getElementById('result-section').scrollIntoView({ behavior: 'smooth' });
+            } else {
+                status.className = 'text-danger';
+                status.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${data.message}`;
+                loadCaptcha();
+            }
+        } catch (err) {
+            status.className = 'text-danger';
+            status.innerHTML = '<i class="fas fa-times-circle"></i> Server Error. Please try again.';
+        }
+        
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-search"></i> GET MY RESULT';
+    });
+
+    // --- LEADERBOARD SORTING LOGIC ---
+    let sortField = 'total_marks';
+    let sortOrder = 'desc';
+
+    function toggleSort(field) {
+        if (sortField === field) {
+            sortOrder = sortOrder === 'desc' ? 'asc' : 'desc';
+        } else {
+            sortField = field;
+            sortOrder = 'desc';
+        }
+        updateIcons();
+        fetchLeaderboard();
+    }
+
+    function updateIcons() {
+        ['rank', 'total_marks', 'sgpa'].forEach(id => {
+            document.getElementById('icon-' + id).innerHTML = '';
+        });
+        document.getElementById('icon-' + sortField).innerHTML = sortOrder === 'desc' ? '▼' : '▲';
+    }
+
+    async function fetchLeaderboard() {
+        const tbody = document.getElementById('leaderboard-body');
+        tbody.innerHTML = '<tr><td colspan="6"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr>';
+        
+        try {
+            const res = await fetch(`/leaderboard?sort=${sortField}&order=${sortOrder}`);
+            const json = await res.json();
+            
+            if (json.status === 'success' && json.data.length > 0) {
+                let html = '';
+                json.data.forEach(s => {
+                    let rowClass = '';
+                    let icon = '';
+                    
+                    if (s.rank === 1) {
+                        rowClass = 'rank-1';
+                        icon = '🥇 ';
+                    } else if (s.rank === 2) {
+                        rowClass = 'rank-2';
+                        icon = '🥈 ';
+                    } else if (s.rank === 3) {
+                        rowClass = 'rank-3';
+                        icon = '🥉 ';
+                    }
+
+                    html += `
+                        <tr class="${rowClass}">
+                            <td class="fw-bold">${icon}#${s.rank}</td>
+                            <td>${s.usn}</td>
+                            <td class="fw-bold">${s.name}</td>
+                            <td class="text-primary fw-bold">${s.total_marks}</td>
+                            <td class="text-success fw-bold">${s.sgpa}</td>
+                            <td class="text-warning fw-bold">${s.percentage}</td>
+                        </tr>
+                    `;
+                });
+                tbody.innerHTML = html;
+            } else {
+                tbody.innerHTML = '<tr><td colspan="6">No results yet. Be the first!</td></tr>';
+            }
+        } catch (err) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-danger">Failed to load leaderboard</td></tr>';
+        }
+    }
+
+    // --- ANALYSIS LOGIC ---
+    let currentCategory = 'overall_fail';
+
+    function loadAnalysis() {
+        fetchAnalysis(currentCategory);
+    }
+
+    // Filter button click handlers
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                // Remove active class from all buttons
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                // Add active class to clicked button
+                this.classList.add('active');
+                
+                // Fetch analysis for this category
+                currentCategory = this.dataset.category;
+                fetchAnalysis(currentCategory);
             });
         });
-
-        // --- LEADERBOARD LOGIC ---
-        let lbData = [];
-        function loadLeaderboard(sort='marks') {
-            $.get(`/leaderboard?sort=${sort}`, function(r) {
-                lbData = r.data;
-                renderLB(lbData);
-            });
-        }
-        function renderLB(data) {
-            let html = '';
-            data.forEach(s => {
-                let rankIcon = s.rank === 1 ? '🥇' : (s.rank === 2 ? '🥈' : (s.rank === 3 ? '🥉' : `#${s.rank}`));
-                let rowColor = s.rank <= 3 ? 'bg-yellow-50' : '';
-                html += `<tr class="${rowColor} hover:bg-gray-50">
-                    <td class="p-4 text-center font-bold text-gray-600">${rankIcon}</td>
-                    <td class="p-4 font-mono font-bold text-gray-800">${s.usn}</td>
-                    <td class="p-4 font-bold text-gray-700">${s.name}</td>
-                    <td class="p-4 text-center text-blue-600 font-bold">${s.total_marks}</td>
-                    <td class="p-4 text-center text-emerald-600 font-bold">${s.sgpa}</td>
-                    <td class="p-4 text-center font-bold text-xs uppercase ${s.class_result === 'Fail' ? 'text-red-500' : 'text-green-500'}">${s.class_result}</td>
-                </tr>`;
-            });
-            $('#lb-body').html(html);
-        }
-        function filterLeaderboard() {
-            let term = $('#lbSearch').val().toLowerCase();
-            renderLB(lbData.filter(s => s.name.toLowerCase().includes(term) || s.usn.toLowerCase().includes(term)));
-        }
-
-        // --- ANALYSIS LOGIC (NEW) ---
-        // --- ANALYSIS LOGIC ---
-function runAnalysis() {
-    const cat = $('#anal-category').val();
-    const btn = $('button[onclick="runAnalysis()"]');
-    btn.text('Processing...').addClass('opacity-75');
-
-    $.get(`/get_analysis?category=${cat}`, function(r) {
-        btn.text('Analyze').removeClass('opacity-75');
-        
-        if(r.status === 'success') {
-            // Update Stats
-            $('#stat-total').text(r.stats.total);
-            $('#stat-pass').text(r.stats.passed);
-            $('#stat-fail').text(r.stats.failed);
-            $('#list-count').text(`${r.students.length} Students`);
-
-            // Render Table
-            let html = '';
-            if(r.students.length === 0) {
-                html = '<tr><td colspan="4" class="p-6 text-center text-gray-400">No students found in this category.</td></tr>';
-            } else {
-                r.students.forEach(s => {
-                    let dataInfo = s.percentage || 'N/A';
-                    let statusBadge = '<span class="status-P">PASS</span>';
-                    
-                    // Logic for Overall Fail List
-                    if(s.fail_summary) {
-                         statusBadge = `<span class="text-xs font-bold text-red-600 bg-red-100 px-2 py-1 rounded">Failed in: ${s.fail_summary}</span>`;
-                    }
-                    // Logic for Subject-wise Fail List
-                    else if(s.fail_marks) {
-                        dataInfo = `<span class="font-mono text-red-600 font-bold">${s.fail_marks} Marks</span>`;
-                        statusBadge = '<span class="status-F">FAIL</span>';
-                    }
-
-                    html += `<tr class="border-b hover:bg-gray-50">
-                        <td class="p-3 font-mono font-bold text-gray-600">${s.usn}</td>
-                        <td class="p-3 font-bold text-gray-800">${s.name}</td>
-                        <td class="p-3">${dataInfo}</td>
-                        <td class="p-3 text-right">${statusBadge}</td>
-                    </tr>`;
-                });
-            }
-            $('#anal-body').html(html);
-        }
     });
-}
-    </script>
+
+    async function fetchAnalysis(category) {
+        const contentDiv = document.getElementById('analysis-content');
+        contentDiv.innerHTML = '<p class="text-center"><i class="fas fa-spinner fa-spin"></i> Analyzing...</p>';
+        
+        try {
+            const res = await fetch(`/get_analysis?category=${category}`);
+            const json = await res.json();
+            
+            if (json.status === 'success') {
+                // Update statistics
+                document.getElementById('stat-total').innerText = json.stats.total;
+                document.getElementById('stat-passed').innerText = json.stats.passed;
+                document.getElementById('stat-failed').innerText = json.stats.failed;
+                
+                // Display students
+                if (json.students.length === 0) {
+                    contentDiv.innerHTML = '<p class="text-center text-success mt-4"><i class="fas fa-check-circle"></i> No failures in this category!</p>';
+                } else {
+                    let tableHtml = `
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th><i class="fas fa-id-badge"></i> USN</th>
+                                        <th><i class="fas fa-user"></i> Name</th>
+                                        <th><i class="fas fa-chart-bar"></i> Total Marks</th>
+                                        <th><i class="fas fa-info-circle"></i> Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+                    
+                    json.students.forEach(s => {
+                        let details = '';
+                        if (s.fail_summary) {
+                            details = `<span class="text-danger">Failed: ${s.fail_summary}</span>`;
+                        } else if (s.fail_marks) {
+                            details = `<span class="text-danger">Marks: ${s.fail_marks} (${s.fail_code})</span>`;
+                        } else {
+                            details = '<span class="text-danger">Failed</span>';
+                        }
+                        
+                        tableHtml += `
+                            <tr>
+                                <td class="fw-bold">${s.usn}</td>
+                                <td>${s.name}</td>
+                                <td>${s.total_marks}</td>
+                                <td>${details}</td>
+                            </tr>
+                        `;
+                    });
+                    
+                    tableHtml += `
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                    
+                    contentDiv.innerHTML = tableHtml;
+                }
+            } else {
+                contentDiv.innerHTML = `<p class="text-center text-danger">${json.message}</p>`;
+            }
+        } catch (err) {
+            contentDiv.innerHTML = '<p class="text-center text-danger">Failed to load analysis</p>';
+        }
+    }
+</script>
 </body>
 </html>

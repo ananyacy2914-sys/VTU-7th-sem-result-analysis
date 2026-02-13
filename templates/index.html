@@ -3,859 +3,424 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DBIT Result Portal - 7th Sem Dec-Jan 2026</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <title>VTU Result Portal - 7th Semester</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #6366f1;
-            --primary-dark: #4f46e5;
-            --success: #10b981;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --dark: #1e293b;
+            --primary-color: #5B59E8;
+            --primary-dark: #4845C7;
+            --secondary-color: #F8F9FA;
+            --text-dark: #2C3E50;
+            --text-light: #6C757D;
+            --success: #28A745;
+            --danger: #DC3545;
+            --warning: #FFC107;
+            --border: #DEE2E6;
         }
-        
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            position: relative;
+            padding: 20px;
+            color: var(--text-dark);
         }
-        
-        /* Animated background */
-        body::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-            pointer-events: none;
-            z-index: 0;
+
+        .container { max-width: 1200px; margin: 0 auto; }
+
+        .header { text-align: center; color: white; margin-bottom: 30px; }
+        .logo { font-size: 4rem; margin-bottom: 10px; }
+        .header h1 { font-size: 2.5rem; margin-bottom: 5px; text-shadow: 0 2px 4px rgba(0,0,0,0.2); font-weight: 800; }
+        .subtitle { font-size: 1.1rem; opacity: 0.9; }
+
+        /* Navigation */
+        .nav-tabs {
+            display: flex; gap: 10px; margin-bottom: 20px;
+            background: rgba(255,255,255,0.15); padding: 8px;
+            border-radius: 12px; backdrop-filter: blur(10px);
         }
-        
-        .container {
-            position: relative;
-            z-index: 1;
+        .tab-btn {
+            flex: 1; padding: 12px; border: none;
+            background: transparent; color: white;
+            font-size: 1rem; cursor: pointer; border-radius: 8px;
+            font-weight: 600; transition: all 0.3s ease;
         }
-        
-        /* Header */
-        .page-header {
-            text-align: center;
-            margin: 2rem 0 3rem;
-            animation: fadeInDown 0.8s ease;
-        }
-        
-        .page-header h1 {
-            color: white;
-            font-size: 2.5rem;
-            font-weight: 800;
-            margin-bottom: 0.5rem;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
-        }
-        
-        .page-header p {
-            color: rgba(255,255,255,0.9);
-            font-size: 1.1rem;
-        }
-        
+        .tab-btn:hover { background: rgba(255,255,255,0.1); }
+        .tab-btn.active { background: white; color: var(--primary-color); shadow: 0 4px 6px rgba(0,0,0,0.1); }
+
+        .tab-content { display: none; animation: fadeIn 0.3s ease; }
+        .tab-content.active { display: block; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
         /* Cards */
         .card {
-            border-radius: 20px;
-            border: none;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
-            background: white;
-            animation: fadeInUp 0.8s ease;
-            transition: all 0.3s ease;
+            background: white; border-radius: 16px; padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15); margin-bottom: 20px;
         }
-        
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 25px 70px rgba(0,0,0,0.2);
+        .card h2 { margin-bottom: 20px; font-size: 1.5rem; border-bottom: 2px solid var(--secondary-color); padding-bottom: 10px; }
+
+        /* Forms */
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 0.9rem; color: var(--text-light); text-transform: uppercase; }
+        .form-group input {
+            width: 100%; padding: 12px; border: 2px solid var(--border);
+            border-radius: 8px; font-size: 1rem; font-weight: 600;
+            font-family: 'Inter', monospace; transition: border 0.3s;
         }
+        .form-group input:focus { outline: none; border-color: var(--primary-color); }
+
+        /* Captcha */
+        .captcha-container { display: flex; flex-direction: column; gap: 10px; position: relative; }
+        #captcha-image { width: 100%; height: 60px; object-fit: contain; background: #f0f0f0; border-radius: 8px; border: 1px solid var(--border); }
         
-        /* Navigation Pills */
-        .nav-pills {
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px);
-            padding: 0.5rem;
-            border-radius: 50px;
-            border: 1px solid rgba(255,255,255,0.2);
+        .loading-state {
+            padding: 20px; text-align: center; background: #f8f9fa;
+            border-radius: 8px; border: 2px dashed #dee2e6;
         }
-        
-        .nav-pills .nav-link {
-            color: white;
-            border-radius: 50px;
-            padding: 0.8rem 2rem;
-            font-weight: 600;
-            transition: all 0.3s ease;
+        .spinner {
+            border: 3px solid #e9ecef; border-top: 3px solid var(--primary-color);
+            border-radius: 50%; width: 30px; height: 30px;
+            animation: spin 1s linear infinite; margin: 0 auto 10px;
         }
-        
-        .nav-pills .nav-link.active {
-            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-            color: white;
-            box-shadow: 0 4px 15px rgba(99,102,241,0.4);
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Buttons */
+        .btn-primary, .btn-secondary {
+            padding: 12px; border: none; border-radius: 8px;
+            font-weight: 700; cursor: pointer; transition: transform 0.2s;
         }
+        .btn-primary { background: var(--primary-color); color: white; width: 100%; font-size: 1.1rem; }
+        .btn-primary:hover { background: var(--primary-dark); transform: translateY(-2px); }
+        .btn-primary:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
         
-        /* Form Elements */
-        .form-control {
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 0.9rem 1.2rem;
-            transition: all 0.3s ease;
-        }
+        .btn-secondary { background: var(--secondary-color); color: var(--text-dark); border: 1px solid var(--border); }
+        .btn-secondary:hover { background: #e9ecef; }
+
+        /* Result Display */
+        .result-header { background: var(--primary-color); color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
+        .result-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; margin-bottom: 25px; }
         
-        .form-control:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 4px rgba(99,102,241,0.1);
-        }
-        
-        /* Captcha Section */
-        .captcha-section {
-            background: linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 100%);
-            padding: 1.5rem;
-            border-radius: 15px;
-            margin-bottom: 1.5rem;
-            border: 2px dashed var(--primary);
-        }
-        
-        #captcha-img {
-            border-radius: 10px;
-            border: 3px solid white;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            max-width: 100%;
-            min-height: 60px;
-            background: #f0f0f0;
-        }
-        
-        /* Submit Button */
-        .btn-submit {
-            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-            color: white;
-            border: none;
-            border-radius: 12px;
-            padding: 1rem;
-            width: 100%;
-            font-weight: 700;
-            font-size: 1.1rem;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(99,102,241,0.3);
-        }
-        
-        .btn-submit:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(99,102,241,0.4);
-        }
-        
-        /* Stats Container */
-        .stats-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-        
-        .stat-box {
-            padding: 2rem 1.5rem;
-            border-radius: 20px;
-            text-align: center;
-            color: white;
-            transition: all 0.3s ease;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-        
-        .stat-box:hover {
-            transform: translateY(-5px) scale(1.02);
-        }
-        
-        .bg-sgpa { background: linear-gradient(135deg, #10b981, #059669); }
-        .bg-marks { background: linear-gradient(135deg, #3b82f6, #2563eb); }
-        .bg-rank { background: linear-gradient(135deg, #f59e0b, #d97706); }
-        
-        .stat-icon {
-            font-size: 2rem;
-            margin-bottom: 0.5rem;
-            opacity: 0.9;
-        }
-        
-        .stat-value {
-            font-size: 2.5rem;
-            font-weight: 800;
-            line-height: 1;
-        }
-        
-        .stat-label {
-            font-size: 0.9rem;
-            opacity: 0.9;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-        }
-        
-        .stat-sublabel {
-            font-size: 1.1rem;
-            opacity: 0.9;
-            margin-top: 0.5rem;
-            font-weight: 600;
-        }
-        
+        .result-item { background: var(--secondary-color); padding: 15px; border-radius: 10px; text-align: center; }
+        .result-item label { display: block; font-size: 0.8rem; text-transform: uppercase; color: var(--text-light); margin-bottom: 5px; }
+        .result-item .value { font-size: 1.4rem; font-weight: 800; color: var(--text-dark); }
+
         /* Table */
-        .table {
-            margin-bottom: 0;
-        }
+        .subjects-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+        .subjects-table th { background: #f1f5f9; text-align: left; padding: 12px; font-weight: 600; color: var(--text-light); }
+        .subjects-table td { padding: 12px; border-bottom: 1px solid var(--border); font-weight: 500; }
+        .subjects-table tr:last-child td { border-bottom: none; }
+
+        .badge { padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; }
+        .badge-success { background: #d1fae5; color: #065f46; }
+        .badge-danger { background: #fee2e2; color: #991b1b; }
+
+        /* Analysis */
+        .analysis-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+        .filter-btn { padding: 8px 16px; border: 1px solid var(--border); background: white; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 600; }
+        .filter-btn.active { background: var(--primary-color); color: white; border-color: var(--primary-color); }
         
-        .table thead {
-            background: linear-gradient(135deg, var(--dark), #334155);
-            color: white;
-        }
-        
-        .table thead th {
-            padding: 1rem;
-            font-weight: 600;
-            border: none;
-            text-transform: uppercase;
-            font-size: 0.85rem;
-        }
-        
-        .table thead th.sortable {
-            cursor: pointer;
-            user-select: none;
-            transition: background 0.2s ease;
-        }
-        
-        .table thead th.sortable:hover {
-            background-color: rgba(255,255,255,0.1);
-        }
-        
-        .table tbody tr {
-            transition: all 0.2s ease;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        
-        .table tbody tr:hover {
-            background: #f9fafb;
-            transform: scale(1.01);
-        }
-        
-        /* Leaderboard Ranks */
-        .rank-1 {
-            background: linear-gradient(135deg, #fef3c7, #fde68a) !important;
-            color: #78350f;
-            font-weight: bold;
-        }
-        
-        .rank-2 {
-            background: linear-gradient(135deg, #f3f4f6, #e5e7eb) !important;
-            color: #374151;
-            font-weight: bold;
-        }
-        
-        .rank-3 {
-            background: linear-gradient(135deg, #fed7aa, #fdba74) !important;
-            color: #9a3412;
-            font-weight: bold;
-        }
-        
-        /* Status Messages */
-        #status-msg {
-            padding: 1rem;
-            border-radius: 10px;
-            font-weight: 600;
-            margin-top: 1rem;
-        }
-        
-        .text-danger {
-            color: #dc2626 !important;
-            background: #fee2e2;
-            border: 1px solid #fca5a5;
-        }
-        
-        .text-success {
-            color: #065f46 !important;
-            background: #d1fae5;
-            border: 1px solid #6ee7b7;
-        }
-        
-        /* Performance Section Header */
-        .performance-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-            padding: 1rem;
-            background: linear-gradient(135deg, #f0f4ff, #e0e7ff);
-            border-radius: 12px;
-            border-left: 5px solid var(--primary);
-        }
-        
-        .performance-stats {
-            display: flex;
-            gap: 2rem;
-        }
-        
-        .performance-stat {
-            text-align: center;
-        }
-        
-        .performance-stat-label {
-            font-size: 0.8rem;
-            color: #64748b;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 0.25rem;
-        }
-        
-        .performance-stat-value {
-            font-size: 1.5rem;
-            font-weight: 800;
-            color: var(--primary);
-        }
-        
-        /* Animations */
-        @keyframes fadeInDown {
-            from {
-                opacity: 0;
-                transform: translateY(-30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
+        .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px; }
+        .stat-card { background: var(--secondary-color); padding: 20px; border-radius: 10px; text-align: center; }
+        .stat-card .num { font-size: 2rem; font-weight: 800; }
+        .stat-card .lbl { font-size: 0.8rem; text-transform: uppercase; color: var(--text-light); }
+
+        .error-message { background: #fef2f2; color: #991b1b; padding: 15px; border-radius: 8px; border-left: 4px solid var(--danger); }
+        .success-message { background: #ecfdf5; color: #065f46; padding: 15px; border-radius: 8px; border-left: 4px solid var(--success); }
+
         /* Responsive */
-        @media (max-width: 768px) {
-            .page-header h1 {
-                font-size: 2rem;
-            }
-            
-            .stat-value {
-                font-size: 2rem;
-            }
-            
-            .stats-container {
-                grid-template-columns: 1fr;
-            }
-            
-            .performance-stats {
-                flex-direction: column;
-                gap: 0.5rem;
-            }
-        }
-        
-        /* Student Name Header */
-        #student-name {
-            color: var(--dark);
-            font-weight: 700;
-            font-size: 1.5rem;
-            margin-bottom: 1.5rem;
-            padding: 1.5rem;
-            background: linear-gradient(135deg, #f0f4ff, #e0e7ff);
-            border-radius: 15px;
-            border-left: 5px solid var(--primary);
+        @media (max-width: 600px) {
+            .header h1 { font-size: 1.8rem; }
+            .nav-tabs { flex-direction: column; }
+            .result-grid { grid-template-columns: 1fr 1fr; }
+            .stat-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
 
-<div class="container py-5">
-    
-    <!-- Header -->
-    <div class="page-header">
-        <h1><i class="fas fa-graduation-cap"></i> DBIT Result Portal</h1>
-        <p>7th Semester December-January 2026 Results - 1DB22CS & 1DB23CS Only</p>
-    </div>
+<div class="container">
+    <header class="header">
+        <div class="logo">🎓</div>
+        <h1>VTU RESULT PORTAL</h1>
+        <p class="subtitle">7th Semester | 2022 Scheme</p>
+    </header>
 
-    <!-- Tab Navigation -->
-    <ul class="nav nav-pills justify-content-center mb-5" id="pills-tab" role="tablist">
-        <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="pills-check-tab" data-bs-toggle="pill" data-bs-target="#pills-check" type="button">
-                <i class="fas fa-search"></i> Check Result
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="pills-leaderboard-tab" data-bs-toggle="pill" data-bs-target="#pills-leaderboard" type="button" onclick="fetchLeaderboard()">
-                <i class="fas fa-trophy"></i> Leaderboard
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="pills-analysis-tab" data-bs-toggle="pill" data-bs-target="#pills-analysis" type="button" onclick="loadAnalysis()">
-                <i class="fas fa-chart-bar"></i> Analysis
-            </button>
-        </li>
-    </ul>
+    <nav class="nav-tabs">
+        <button class="tab-btn active" data-tab="check-result">🔍 Check Result</button>
+        <button class="tab-btn" data-tab="leaderboard">🏆 Leaderboard</button>
+        <button class="tab-btn" data-tab="analysis">📊 Analysis</button>
+    </nav>
 
-    <div class="tab-content" id="pills-tabContent">
-        
-        <!-- Check Result Tab -->
-        <div class="tab-pane fade show active" id="pills-check" role="tabpanel">
-            <div class="row justify-content-center">
-                <div class="col-lg-5 col-md-6 mb-4">
-                    <div class="card p-4">
-                        <h4 class="text-center mb-3 fw-bold">
-                            <i class="fas fa-user-graduate text-primary"></i> Enter Your Details
-                        </h4>
-                        
-                        <div class="captcha-section text-center">
-                            <img id="captcha-img" src="" alt="Loading captcha..." onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%2260%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22200%22 height=%2260%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-family=%22Arial%22 font-size=%2214%22 fill=%22%23999%22%3ELoading...%3C/text%3E%3C/svg%3E';">
-                            <br>
-                            <a href="#" onclick="loadCaptcha(); return false;" class="text-decoration-none fw-bold text-primary mt-2 d-inline-block">
-                                <i class="fas fa-sync-alt"></i> Reload Captcha
-                            </a>
-                        </div>
-
-                        <form id="resultForm">
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">
-                                    <i class="fas fa-id-card text-primary"></i> University Seat Number
-                                </label>
-                                <input type="text" name="usn" id="usn-input" class="form-control" placeholder="1DB22CS001" required maxlength="10">
-                                <small class="text-muted">
-                                    <i class="fas fa-info-circle"></i> Only 1DB22CS and 1DB23CS allowed
-                                </small>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">
-                                    <i class="fas fa-shield-alt text-primary"></i> Enter Captcha Code
-                                </label>
-                                <input type="text" name="captcha" class="form-control" placeholder="Type the code above" required autocomplete="off">
-                            </div>
-                            <button type="submit" class="btn-submit">
-                                <i class="fas fa-search"></i> GET MY RESULT
-                            </button>
-                        </form>
-                        <div id="status-msg"></div>
-                    </div>
+    <div id="check-result" class="tab-content active">
+        <div class="card">
+            <h2>Student Details</h2>
+            <form id="result-form">
+                <div class="form-group">
+                    <label>USN</label>
+                    <input type="text" id="usn" name="usn" placeholder="1DB22CS..." required pattern="1DB2[1234]CS\d{3}" title="Format: 1DB22CS001">
                 </div>
-
-                <!-- Result Display -->
-                <div class="col-lg-7 col-md-6" id="result-section" style="display:none;">
-                    <div class="card p-4">
-                        <div id="student-name"></div>
-                        
-                        <div class="stats-container">
-                            <div class="stat-box bg-sgpa">
-                                <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
-                                <div class="stat-label">SGPA</div>
-                                <div class="stat-value" id="sgpa-display">0.00</div>
-                                <div class="stat-sublabel" id="perc-display">0.00%</div>
-                            </div>
-                            <div class="stat-box bg-marks">
-                                <div class="stat-icon"><i class="fas fa-star"></i></div>
-                                <div class="stat-label">Total Marks</div>
-                                <div class="stat-value" id="total-marks-display">0</div>
-                                <div class="stat-sublabel">Out of 700</div>
-                            </div>
-                            <div class="stat-box bg-rank">
-                                <div class="stat-icon"><i class="fas fa-medal"></i></div>
-                                <div class="stat-label">University Rank</div>
-                                <div class="stat-value" id="rank-display">#0</div>
-                            </div>
+                <div class="form-group">
+                    <label>Captcha</label>
+                    <div class="captcha-container">
+                        <div id="captcha-loading" class="loading-state">
+                            <div class="spinner"></div>
+                            <p>Loading Captcha...</p>
                         </div>
-                        
-                        <!-- Performance Summary Header -->
-                        <div class="performance-header">
-                            <div>
-                                <h5 class="mb-0"><i class="fas fa-book text-primary"></i> Subject-wise Performance</h5>
-                            </div>
-                            <div class="performance-stats">
-                                <div class="performance-stat">
-                                    <div class="performance-stat-label">Total Marks</div>
-                                    <div class="performance-stat-value" id="perf-marks">0</div>
-                                </div>
-                                <div class="performance-stat">
-                                    <div class="performance-stat-label">Percentage</div>
-                                    <div class="performance-stat-value" id="perf-percentage">0%</div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead>
-                                    <tr>
-                                        <th><i class="fas fa-code"></i> Code</th>
-                                        <th><i class="fas fa-book-open"></i> Subject</th>
-                                        <th><i class="fas fa-calculator"></i> Marks</th>
-                                        <th><i class="fas fa-check-circle"></i> Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="marks-body"></tbody>
-                            </table>
-                        </div>
+                        <img id="captcha-image" style="display: none;">
+                        <button type="button" id="refresh-captcha" class="btn-secondary">🔄 Refresh Image</button>
                     </div>
+                    <input type="text" id="captcha" name="captcha" placeholder="Enter code" required autocomplete="off" style="margin-top: 10px;">
                 </div>
-            </div>
+                <button type="submit" id="submit-btn" class="btn-primary">GET RESULT</button>
+            </form>
         </div>
 
-        <!-- Leaderboard Tab -->
-        <div class="tab-pane fade" id="pills-leaderboard" role="tabpanel">
-            <div class="card p-4">
-                <h3 class="text-center mb-4">
-                    <i class="fas fa-crown text-warning"></i> Top Performers Leaderboard
-                </h3>
-                <div class="table-responsive">
-                    <table class="table table-hover text-center align-middle">
-                        <thead>
-                            <tr>
-                                <th class="sortable" onclick="toggleSort('rank')">
-                                    <i class="fas fa-hashtag"></i> Rank <span id="icon-rank"></span>
-                                </th>
-                                <th><i class="fas fa-id-badge"></i> USN</th>
-                                <th><i class="fas fa-user"></i> Name</th>
-                                <th class="sortable" onclick="toggleSort('total_marks')">
-                                    <i class="fas fa-chart-bar"></i> Marks <span id="icon-total_marks">▼</span>
-                                </th>
-                                <th class="sortable" onclick="toggleSort('sgpa')">
-                                    <i class="fas fa-graduation-cap"></i> SGPA <span id="icon-sgpa"></span>
-                                </th>
-                                <th><i class="fas fa-percent"></i> Percentage</th>
-                            </tr>
-                        </thead>
-                        <tbody id="leaderboard-body">
-                            <tr><td colspan="6">Loading...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- Analysis Tab -->
-        <div class="tab-pane fade" id="pills-analysis" role="tabpanel">
-            <div class="card p-4">
-                <h3 class="text-center mb-4">
-                    <i class="fas fa-chart-bar text-info"></i> Subject-wise Analysis
-                </h3>
-                
-                <!-- Filter Buttons -->
-                <div class="mb-4">
-                    <h5 class="mb-3">Select Category:</h5>
-                    <div class="d-flex flex-wrap gap-2">
-                        <button class="btn btn-sm btn-outline-danger filter-btn active" data-category="overall_fail">
-                            <i class="fas fa-exclamation-triangle"></i> Overall Failures
-                        </button>
-                        <button class="btn btn-sm btn-outline-primary filter-btn" data-category="BCS701">BCS701</button>
-                        <button class="btn btn-sm btn-outline-primary filter-btn" data-category="BCS702">BCS702</button>
-                        <button class="btn btn-sm btn-outline-primary filter-btn" data-category="BCS703">BCS703</button>
-                        <button class="btn btn-sm btn-outline-primary filter-btn" data-category="BCS714A">BCS714A</button>
-                        <button class="btn btn-sm btn-outline-primary filter-btn" data-category="BCS714D">BCS714D</button>
-                        <button class="btn btn-sm btn-outline-primary filter-btn" data-category="BEE755B">BEE755B</button>
-                        <button class="btn btn-sm btn-outline-primary filter-btn" data-category="BCS786">BCS786</button>
-                    </div>
-                </div>
-                
-                <!-- Statistics Summary -->
-                <div class="row mb-4" id="analysis-stats">
-                    <div class="col-md-4">
-                        <div class="text-center p-3 bg-light rounded">
-                            <h2 class="mb-0 text-primary" id="stat-total">0</h2>
-                            <small class="text-muted">Total Students</small>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="text-center p-3 bg-light rounded">
-                            <h2 class="mb-0 text-success" id="stat-passed">0</h2>
-                            <small class="text-muted">Passed</small>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="text-center p-3 bg-light rounded">
-                            <h2 class="mb-0 text-danger" id="stat-failed">0</h2>
-                            <small class="text-muted">Failed</small>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Analysis Results Table -->
-                <div id="analysis-content">
-                    <p class="text-center text-muted">Select a category to view analysis</p>
-                </div>
-            </div>
+        <div id="result-display" class="card result-card" style="display: none;">
+            <div id="result-content"></div>
         </div>
     </div>
+
+    <div id="leaderboard" class="tab-content">
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2>🏆 Class Leaderboard</h2>
+                <div>
+                    <select id="sort-by" style="padding: 5px;">
+                        <option value="marks">Marks</option>
+                        <option value="sgpa">SGPA</option>
+                    </select>
+                    <button id="load-leaderboard" class="btn-secondary" style="padding: 5px 10px;">Load</button>
+                </div>
+            </div>
+            <div id="leaderboard-content"></div>
+        </div>
+    </div>
+
+    <div id="analysis" class="tab-content">
+        <div class="card">
+            <h2>📊 Performance Analysis</h2>
+            <div class="analysis-filters">
+                <button class="filter-btn active" data-category="overall_fail">Overall Failures</button>
+                <button class="filter-btn" data-category="fcd">Distinction</button>
+                <button class="filter-btn" data-category="fc">First Class</button>
+                <button class="filter-btn" data-category="sc">Second Class</button>
+                <button class="filter-btn" data-category="BCS701">BCS701</button>
+                <button class="filter-btn" data-category="BCS702">BCS702</button>
+                <button class="filter-btn" data-category="BCS703">BCS703</button>
+                <button class="filter-btn" data-category="BCS714">BCS714</button>
+                <button class="filter-btn" data-category="BCS755">BCS755</button>
+                <button class="filter-btn" data-category="BCSP786">BCSP786</button>
+            </div>
+            
+            <div id="analysis-stats" class="stat-grid"></div>
+            <div id="analysis-content"></div>
+        </div>
+    </div>
+
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // --- CAPTCHA & SETUP ---
-    function loadCaptcha() {
-        const img = document.getElementById('captcha-img');
-        img.src = "/get_captcha?" + new Date().getTime();
-    }
-    window.onload = loadCaptcha;
+    // --- GLOBAL VARIABLES ---
+    let captchaRetries = 0;
+    const MAX_RETRIES = 3;
 
-    // Real-time USN validation
-    document.addEventListener('DOMContentLoaded', function() {
-        const usnInput = document.getElementById('usn-input');
-        
-        usnInput.addEventListener('input', function(e) {
-            let value = e.target.value.toUpperCase();
-            e.target.value = value;
+    // --- TAB SWITCHING ---
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             
-            // Visual feedback
-            if (value.length > 0) {
-                if (value.startsWith('1DB22CS') || value.startsWith('1DB23CS')) {
-                    e.target.style.borderColor = '#10b981';
-                    e.target.style.backgroundColor = '#f0fdf4';
-                } else {
-                    e.target.style.borderColor = '#ef4444';
-                    e.target.style.backgroundColor = '#fef2f2';
-                }
-            } else {
-                e.target.style.borderColor = '#e2e8f0';
-                e.target.style.backgroundColor = 'white';
-            }
+            btn.classList.add('active');
+            document.getElementById(btn.dataset.tab).classList.add('active');
         });
     });
 
-    // --- FETCH RESULT LOGIC ---
-    document.getElementById('resultForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
+    // --- CAPTCHA LOGIC ---
+    function loadCaptcha() {
+        const img = document.getElementById('captcha-image');
+        const loader = document.getElementById('captcha-loading');
         
-        // Validate USN
-        const usn = this.usn.value.trim().toUpperCase();
-        const status = document.getElementById('status-msg');
+        loader.style.display = 'block';
+        img.style.display = 'none';
         
-        if (!usn.startsWith('1DB22CS') && !usn.startsWith('1DB23CS')) {
-            status.className = 'text-danger';
-            status.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Invalid USN! Only 1DB22CS or 1DB23CS allowed';
-            return;
-        }
-        
-        if (usn.length !== 10) {
-            status.className = 'text-danger';
-            status.innerHTML = '<i class="fas fa-exclamation-triangle"></i> USN must be exactly 10 characters';
-            return;
-        }
+        fetch(`/get_captcha?t=${Date.now()}`)
+            .then(res => {
+                if(!res.ok) throw new Error("Server Busy");
+                return res.blob();
+            })
+            .then(blob => {
+                img.src = URL.createObjectURL(blob);
+                img.style.display = 'block';
+                loader.style.display = 'none';
+                captchaRetries = 0;
+            })
+            .catch(err => {
+                console.error(err);
+                if(captchaRetries < MAX_RETRIES) {
+                    captchaRetries++;
+                    setTimeout(loadCaptcha, 2000); // Retry after 2s
+                } else {
+                    loader.innerHTML = `<p style="color:red">Failed to load. <br><button onclick="loadCaptcha()">Try Again</button></p>`;
+                }
+            });
+    }
 
-        const btn = document.querySelector('.btn-submit');
+    document.getElementById('refresh-captcha').onclick = () => {
+        captchaRetries = 0;
+        loadCaptcha();
+    };
+
+    // --- FETCH RESULT ---
+    document.getElementById('result-form').onsubmit = async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('submit-btn');
+        const display = document.getElementById('result-display');
+        const content = document.getElementById('result-content');
+        
         btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Fetching...';
-        status.innerHTML = '';
-        document.getElementById('result-section').style.display = 'none';
+        btn.textContent = "FETCHING...";
+        display.style.display = 'none';
+
+        const formData = new FormData(e.target);
 
         try {
-            const res = await fetch('/fetch_result', { method: 'POST', body: new FormData(this) });
+            const res = await fetch('/fetch_result', { method: 'POST', body: formData });
             const data = await res.json();
 
-            if (data.status === 'success') {
-                const s = data.data;
-                
-                document.getElementById('student-name').innerHTML = 
-                    `<i class="fas fa-user-circle"></i> ${s.name}`;
-                document.getElementById('sgpa-display').innerText = s.sgpa;
-                document.getElementById('perc-display').innerText = s.percentage;
-                document.getElementById('total-marks-display').innerText = s.total_marks;
-                document.getElementById('rank-display').innerText = "#" + data.ranks.uni_rank;
-                
-                // Performance header
-                document.getElementById('perf-marks').innerText = s.total_marks;
-                document.getElementById('perf-percentage').innerText = s.percentage;
+            display.style.display = 'block';
+            if(data.status === 'success') {
+                const d = data.data;
+                // Render Result
+                let rows = d.subjects.map(s => `
+                    <tr>
+                        <td>${s.code}</td>
+                        <td>${s.name}</td>
+                        <td>${s.total}</td>
+                        <td><span class="badge ${s.result === 'P' ? 'badge-success' : 'badge-danger'}">${s.result}</span></td>
+                    </tr>
+                `).join('');
 
-                let rows = '';
-                s.subjects.forEach(sub => {
-                    const statusClass = sub.result === 'P' ? 'text-success' : 'text-danger';
-                    const statusIcon = sub.result === 'P' ? '✓' : '✗';
-                    rows += `
-                        <tr>
-                            <td class="fw-bold text-secondary">${sub.code}</td>
-                            <td>${sub.name}</td>
-                            <td class="fw-bold">${sub.total}</td>
-                            <td class="${statusClass} fw-bold">${statusIcon} ${sub.result === 'P' ? 'Pass' : 'Fail'}</td>
-                        </tr>
-                    `;
-                });
-                document.getElementById('marks-body').innerHTML = rows;
-                document.getElementById('result-section').style.display = 'block';
-                
-                // Scroll to results
-                document.getElementById('result-section').scrollIntoView({ behavior: 'smooth' });
-            } else {
-                status.className = 'text-danger';
-                status.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${data.message}`;
-                loadCaptcha();
-            }
-        } catch (err) {
-            status.className = 'text-danger';
-            status.innerHTML = '<i class="fas fa-times-circle"></i> Server Error. Please try again.';
-        }
-        
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-search"></i> GET MY RESULT';
-    });
-
-    // --- LEADERBOARD SORTING LOGIC ---
-    let sortField = 'total_marks';
-    let sortOrder = 'desc';
-
-    function toggleSort(field) {
-        if (sortField === field) {
-            sortOrder = sortOrder === 'desc' ? 'asc' : 'desc';
-        } else {
-            sortField = field;
-            sortOrder = 'desc';
-        }
-        updateIcons();
-        fetchLeaderboard();
-    }
-
-    function updateIcons() {
-        ['rank', 'total_marks', 'sgpa'].forEach(id => {
-            document.getElementById('icon-' + id).innerHTML = '';
-        });
-        document.getElementById('icon-' + sortField).innerHTML = sortOrder === 'desc' ? '▼' : '▲';
-    }
-
-    async function fetchLeaderboard() {
-        const tbody = document.getElementById('leaderboard-body');
-        tbody.innerHTML = '<tr><td colspan="6"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr>';
-        
-        try {
-            const res = await fetch(`/leaderboard?sort=${sortField}&order=${sortOrder}`);
-            const json = await res.json();
-            
-            if (json.status === 'success' && json.data.length > 0) {
-                let html = '';
-                json.data.forEach(s => {
-                    let rowClass = '';
-                    let icon = '';
-                    
-                    if (s.rank === 1) {
-                        rowClass = 'rank-1';
-                        icon = '🥇 ';
-                    } else if (s.rank === 2) {
-                        rowClass = 'rank-2';
-                        icon = '🥈 ';
-                    } else if (s.rank === 3) {
-                        rowClass = 'rank-3';
-                        icon = '🥉 ';
-                    }
-
-                    html += `
-                        <tr class="${rowClass}">
-                            <td class="fw-bold">${icon}#${s.rank}</td>
-                            <td>${s.usn}</td>
-                            <td class="fw-bold">${s.name}</td>
-                            <td class="text-primary fw-bold">${s.total_marks}</td>
-                            <td class="text-success fw-bold">${s.sgpa}</td>
-                            <td class="text-warning fw-bold">${s.percentage}</td>
-                        </tr>
-                    `;
-                });
-                tbody.innerHTML = html;
-            } else {
-                tbody.innerHTML = '<tr><td colspan="6">No results yet. Be the first!</td></tr>';
-            }
-        } catch (err) {
-            tbody.innerHTML = '<tr><td colspan="6" class="text-danger">Failed to load leaderboard</td></tr>';
-        }
-    }
-
-    // --- ANALYSIS LOGIC ---
-    let currentCategory = 'overall_fail';
-
-    function loadAnalysis() {
-        fetchAnalysis(currentCategory);
-    }
-
-    // Filter button click handlers
-    document.addEventListener('DOMContentLoaded', function() {
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                // Remove active class from all buttons
-                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-                // Add active class to clicked button
-                this.classList.add('active');
-                
-                // Fetch analysis for this category
-                currentCategory = this.dataset.category;
-                fetchAnalysis(currentCategory);
-            });
-        });
-    });
-
-    async function fetchAnalysis(category) {
-        const contentDiv = document.getElementById('analysis-content');
-        contentDiv.innerHTML = '<p class="text-center"><i class="fas fa-spinner fa-spin"></i> Analyzing...</p>';
-        
-        try {
-            const res = await fetch(`/get_analysis?category=${category}`);
-            const json = await res.json();
-            
-            if (json.status === 'success') {
-                // Update statistics
-                document.getElementById('stat-total').innerText = json.stats.total;
-                document.getElementById('stat-passed').innerText = json.stats.passed;
-                document.getElementById('stat-failed').innerText = json.stats.failed;
-                
-                // Display students
-                if (json.students.length === 0) {
-                    contentDiv.innerHTML = '<p class="text-center text-success mt-4"><i class="fas fa-check-circle"></i> No failures in this category!</p>';
-                } else {
-                    let tableHtml = `
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead>
-                                    <tr>
-                                        <th><i class="fas fa-id-badge"></i> USN</th>
-                                        <th><i class="fas fa-user"></i> Name</th>
-                                        <th><i class="fas fa-chart-bar"></i> Total Marks</th>
-                                        <th><i class="fas fa-info-circle"></i> Details</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                    `;
-                    
-                    json.students.forEach(s => {
-                        let details = '';
-                        if (s.fail_summary) {
-                            details = `<span class="text-danger">Failed: ${s.fail_summary}</span>`;
-                        } else if (s.fail_marks) {
-                            details = `<span class="text-danger">Marks: ${s.fail_marks} (${s.fail_code})</span>`;
-                        } else {
-                            details = '<span class="text-danger">Failed</span>';
-                        }
-                        
-                        tableHtml += `
-                            <tr>
-                                <td class="fw-bold">${s.usn}</td>
-                                <td>${s.name}</td>
-                                <td>${s.total_marks}</td>
-                                <td>${details}</td>
-                            </tr>
-                        `;
-                    });
-                    
-                    tableHtml += `
-                                </tbody>
-                            </table>
+                content.innerHTML = `
+                    <div class="result-header">
+                        <h2>${d.name}</h2>
+                        <p>${d.usn}</p>
+                    </div>
+                    <div class="result-grid">
+                        <div class="result-item"><label>SGPA</label><div class="value">${d.sgpa}</div></div>
+                        <div class="result-item"><label>Marks</label><div class="value">${d.total_marks}</div></div>
+                        <div class="result-item"><label>Rank</label><div class="value">#${d.rank}</div></div>
+                        <div class="result-item"><label>Class</label>
+                            <div class="value" style="color: ${d.class_result.includes('Fail') ? 'var(--danger)' : 'var(--success)'}; font-size: 1rem;">
+                                ${d.class_result}
+                            </div>
                         </div>
-                    `;
-                    
-                    contentDiv.innerHTML = tableHtml;
-                }
+                    </div>
+                    <h3>Subjects</h3>
+                    <table class="subjects-table">
+                        <thead><tr><th>Code</th><th>Subject</th><th>Marks</th><th>Result</th></tr></thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                `;
+                // Reload captcha for next use
+                loadCaptcha();
+                document.getElementById('captcha').value = '';
             } else {
-                contentDiv.innerHTML = `<p class="text-center text-danger">${json.message}</p>`;
+                content.innerHTML = `<div class="error-message">❌ ${data.message}</div>`;
+                if(data.message.includes("Captcha")) loadCaptcha();
             }
         } catch (err) {
-            contentDiv.innerHTML = '<p class="text-center text-danger">Failed to load analysis</p>';
+            content.innerHTML = `<div class="error-message">❌ Network Error. Try again.</div>`;
         }
-    }
+        btn.disabled = false;
+        btn.textContent = "GET RESULT";
+    };
+
+    // --- LEADERBOARD ---
+    document.getElementById('load-leaderboard').onclick = async () => {
+        const sort = document.getElementById('sort-by').value;
+        const div = document.getElementById('leaderboard-content');
+        div.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Loading...</p></div>';
+
+        const res = await fetch(`/leaderboard?sort=${sort}`);
+        const json = await res.json();
+
+        if(json.status === 'success') {
+            let rows = json.data.map(s => `
+                <tr>
+                    <td>#${s.rank}</td>
+                    <td>${s.usn}</td>
+                    <td>${s.name}</td>
+                    <td>${s.total_marks}</td>
+                    <td>${s.sgpa}</td>
+                    <td><span class="badge ${s.class_result === 'Fail' ? 'badge-danger' : 'badge-success'}">${s.class_result}</span></td>
+                </tr>
+            `).join('');
+            
+            div.innerHTML = `
+                <table class="subjects-table">
+                    <thead><tr><th>Rank</th><th>USN</th><th>Name</th><th>Marks</th><th>SGPA</th><th>Result</th></tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            `;
+        }
+    };
+
+    // --- ANALYSIS ---
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.onclick = async () => {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            const cat = btn.dataset.category;
+            const statsDiv = document.getElementById('analysis-stats');
+            const contentDiv = document.getElementById('analysis-content');
+            
+            contentDiv.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Analyzing...</p></div>';
+            
+            const res = await fetch(`/get_analysis?category=${cat}`);
+            const json = await res.json();
+            
+            if(json.status === 'success') {
+                // Update Stats
+                statsDiv.innerHTML = `
+                    <div class="stat-card"><div class="num">${json.stats.total}</div><div class="lbl">Total</div></div>
+                    <div class="stat-card"><div class="num" style="color:var(--success)">${json.stats.passed}</div><div class="lbl">Passed</div></div>
+                    <div class="stat-card"><div class="num" style="color:var(--danger)">${json.stats.failed}</div><div class="lbl">Failed</div></div>
+                `;
+                
+                // Update Table
+                if(json.students.length === 0) {
+                    contentDiv.innerHTML = '<div class="success-message">No students found in this category.</div>';
+                } else {
+                    let rows = json.students.map(s => `
+                        <tr>
+                            <td>${s.usn}</td>
+                            <td>${s.name}</td>
+                            <td>${s.total_marks}</td>
+                            <td>${s.sgpa}</td>
+                            <td style="color: ${s.fail_summary || s.fail_marks ? 'var(--danger)' : 'inherit'}">
+                                ${s.fail_summary ? 'Failed: ' + s.fail_summary : (s.fail_marks ? s.fail_marks + ' Marks' : s.class_result)}
+                            </td>
+                        </tr>
+                    `).join('');
+                    
+                    contentDiv.innerHTML = `
+                        <table class="subjects-table">
+                            <thead><tr><th>USN</th><th>Name</th><th>Marks</th><th>SGPA</th><th>Details</th></tr></thead>
+                            <tbody>${rows}</tbody>
+                        </table>
+                    `;
+                }
+            }
+        };
+    });
+
+    // Init
+    loadCaptcha();
 </script>
+
 </body>
 </html>

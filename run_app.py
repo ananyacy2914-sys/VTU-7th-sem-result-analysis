@@ -337,6 +337,7 @@ def get_captcha():
         'error': 'Failed to load captcha after multiple attempts. Please try again in a moment.'
     }), 503
 
+
 @app.route('/fetch_result', methods=['POST'])
 def fetch_result():
     usn = request.form['usn'].strip().upper()  # Already uppercase
@@ -403,6 +404,12 @@ def fetch_result():
         logger.error(f"Fetch Error: {e}")
         reset_driver()
         return jsonify({'status': 'error', 'message': "Server Error. Try again."})
+
+
+// Auto-convert USN to uppercase while typing
+document.getElementById('usn').addEventListener('input', function(e) {
+    e.target.value = e.target.value.toUpperCase();
+});
 
 @app.route('/leaderboard')
 def leaderboard():

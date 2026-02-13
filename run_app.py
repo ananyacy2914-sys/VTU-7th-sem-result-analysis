@@ -21,7 +21,7 @@ app = Flask(__name__)
 app.secret_key = 'vtu_final_secret'
 
 # --- DATABASE CONNECTION ---
-MONGO_URI = os.environ.get('MONGO_URI', 'mongodb://127.0.0.1:27017/')
+MONGO_URI = os.environ.get('MONGO_URI', 'mongodb+srv://abhi202456:OancEobekOa95hDG@cluster0.01ushqs.mongodb.net/vtu_7th_sem_db?retryWrites=true&w=majority&appName=Cluster0')
 
 db = None
 students_col = None
@@ -359,8 +359,13 @@ def get_credits_2022_cs_7th(sub_code):
     if "BCS702" in code: return 4  # Theory subject
     if "BCS703" in code: return 4  # Theory subject
     if "BCS714" in code: return 3  # Professional Electives (BCS714A, BCS714D, etc.)
-    if "BCS786" in code: return 6  # Project Work
-    if "BEE755B" in code: return 3  # Theory subject
+    if "BCS704" in code: return 3  # Alternative PE code
+    if "BEE755" in code: return 3  # Open Electives (BEE755B, etc.)
+    if "BCS755" in code: return 3  # Alternative OE code
+    if "BCS705" in code: return 3  # Alternative OE code
+    if "BCSP786" in code: return 6  # Project Work
+    if "BCSP706" in code: return 6  # Alternative Project code
+    if "BCSL707" in code: return 1  # Lab (if applicable)
     return 0 
 
 def calculate_grade_point(marks):

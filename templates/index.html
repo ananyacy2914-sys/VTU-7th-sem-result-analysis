@@ -378,7 +378,7 @@
     <!-- Header -->
     <div class="page-header">
         <h1><i class="fas fa-graduation-cap"></i> DBIT Result Portal</h1>
-        <p>7th Semester December-January 2026 Results - 1DB23CS & 1DB24CS Only</p>
+        <p>7th Semester December-January 2026 Results - 1DB22CS & 1DB23CS Only</p>
     </div>
 
     <!-- Tab Navigation -->
@@ -424,9 +424,9 @@
                                 <label class="form-label fw-bold">
                                     <i class="fas fa-id-card text-primary"></i> University Seat Number
                                 </label>
-                                <input type="text" name="usn" id="usn-input" class="form-control" placeholder="1DB23CS001" required maxlength="10">
+                                <input type="text" name="usn" id="usn-input" class="form-control" placeholder="1DB22CS001" required maxlength="10">
                                 <small class="text-muted">
-                                    <i class="fas fa-info-circle"></i> Only 1DB23CS and 1DB24CS allowed
+                                    <i class="fas fa-info-circle"></i> Only 1DB22CS and 1DB23CS allowed
                                 </small>
                             </div>
                             <div class="mb-3">
@@ -609,7 +609,7 @@
             
             // Visual feedback
             if (value.length > 0) {
-                if (value.startsWith('1DB23CS') || value.startsWith('1DB24CS')) {
+                if (value.startsWith('1DB22CS') || value.startsWith('1DB23CS')) {
                     e.target.style.borderColor = '#10b981';
                     e.target.style.backgroundColor = '#f0fdf4';
                 } else {
@@ -631,9 +631,9 @@
         const usn = this.usn.value.trim().toUpperCase();
         const status = document.getElementById('status-msg');
         
-        if (!usn.startsWith('1DB23CS') && !usn.startsWith('1DB24CS')) {
+        if (!usn.startsWith('1DB22CS') && !usn.startsWith('1DB23CS')) {
             status.className = 'text-danger';
-            status.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Invalid USN! Only 1DB23CS or 1DB24CS allowed';
+            status.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Invalid USN! Only 1DB22CS or 1DB23CS allowed';
             return;
         }
         

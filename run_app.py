@@ -474,7 +474,7 @@ def get_analysis():
             subj_total = 0
             subj_pass = 0
             for s in all_students:
-                subj = next((item for item in s.get('subjects', []) if item['code'] == subject_code), None)
+                subj = next((item for item in s.get('subjects', []) if item['code'].startswith(subject_code)), None)
                 if subj:
                     subj_total += 1
                     if subj['result'] == 'P': 

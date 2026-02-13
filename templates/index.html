@@ -130,6 +130,21 @@
         .error-message { background: #fef2f2; color: #991b1b; padding: 15px; border-radius: 8px; border-left: 4px solid var(--danger); }
         .success-message { background: #ecfdf5; color: #065f46; padding: 15px; border-radius: 8px; border-left: 4px solid var(--success); }
 
+        /* Footer */
+        .footer {
+            text-align: center;
+            color: white;
+            padding: 20px;
+            margin-top: 30px;
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        .footer a {
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
         /* Responsive */
         @media (max-width: 600px) {
             .header h1 { font-size: 1.8rem; }
@@ -137,20 +152,6 @@
             .result-grid { grid-template-columns: 1fr 1fr; }
             .stat-grid { grid-template-columns: 1fr; }
         }
-        /* Footer */
-.footer {
-    text-align: center;
-    color: white;
-    padding: 20px;
-    margin-top: 30px;
-    font-size: 0.9rem;
-    opacity: 0.9;
-}
-.footer a {
-    color: white;
-    text-decoration: none;
-    font-weight: 600;
-}
     </style>
 </head>
 <body>
@@ -214,6 +215,7 @@
             <div id="leaderboard-content"></div>
         </div>
     </div>
+
     <div id="analysis" class="tab-content">
         <div class="card">
             <h2>📊 Performance Analysis</h2>
@@ -235,13 +237,9 @@
         </div>
     </div>
 
-</div>
-
-<footer class="footer">
-    Designed and Developed by Astitva & Ananya C Y
-</footer>
-
-</div>
+    <footer class="footer">
+        Designed and Developed by Astitva & Ananya C Y
+    </footer>
 
 </div>
 
@@ -284,7 +282,7 @@
                 console.error(err);
                 if(captchaRetries < MAX_RETRIES) {
                     captchaRetries++;
-                    setTimeout(loadCaptcha, 2000); // Retry after 2s
+                    setTimeout(loadCaptcha, 2000);
                 } else {
                     loader.innerHTML = `<p style="color:red">Failed to load. <br><button onclick="loadCaptcha()">Try Again</button></p>`;
                 }
@@ -316,7 +314,6 @@
             display.style.display = 'block';
             if(data.status === 'success') {
                 const d = data.data;
-                // Render Result
                 let rows = d.subjects.map(s => `
                     <tr>
                         <td>${s.code}</td>
@@ -347,7 +344,6 @@
                         <tbody>${rows}</tbody>
                     </table>
                 `;
-                // Reload captcha for next use
                 loadCaptcha();
                 document.getElementById('captcha').value = '';
             } else {
@@ -361,51 +357,50 @@
         btn.textContent = "GET RESULT";
     };
 
-
     // --- LEADERBOARD ---
-document.getElementById('load-leaderboard').onclick = async () => {
-    const sort = document.getElementById('sort-by').value;
-    const search = document.getElementById('search-input').value.trim();
-    const div = document.getElementById('leaderboard-content');
-    div.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Loading...</p></div>';
+    document.getElementById('load-leaderboard').onclick = async () => {
+        const sort = document.getElementById('sort-by').value;
+        const search = document.getElementById('search-input').value.trim();
+        const div = document.getElementById('leaderboard-content');
+        div.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Loading...</p></div>';
 
-    const res = await fetch(`/leaderboard?sort=${sort}&search=${encodeURIComponent(search)}`);
-    const json = await res.json();
+        const res = await fetch(`/leaderboard?sort=${sort}&search=${encodeURIComponent(search)}`);
+        const json = await res.json();
 
-    if(json.status === 'success') {
-        if(json.data.length === 0) {
-            div.innerHTML = '<div class="error-message">No students found matching your search.</div>';
-        } else {
-            let rows = json.data.map(s => `
-                <tr>
-                    <td>#${s.rank}</td>
-                    <td>${s.usn}</td>
-                    <td>${s.name}</td>
-                    <td>${s.total_marks}</td>
-                    <td>${s.sgpa}</td>
-                    <td><span class="badge ${s.class_result === 'Fail' ? 'badge-danger' : 'badge-success'}">${s.class_result}</span></td>
-                </tr>
-            `).join('');
-            
-            div.innerHTML = `
-                <table class="subjects-table">
-                    <thead><tr><th>Rank</th><th>USN</th><th>Name</th><th>Marks</th><th>SGPA</th><th>Result</th></tr></thead>
-                    <tbody>${rows}</tbody>
-                </table>
-                <p style="margin-top: 15px; color: var(--text-light); font-size: 0.9rem;">
-                    Showing ${json.data.length} student${json.data.length !== 1 ? 's' : ''}
-                </p>
-            `;
+        if(json.status === 'success') {
+            if(json.data.length === 0) {
+                div.innerHTML = '<div class="error-message">No students found matching your search.</div>';
+            } else {
+                let rows = json.data.map(s => `
+                    <tr>
+                        <td>#${s.rank}</td>
+                        <td>${s.usn}</td>
+                        <td>${s.name}</td>
+                        <td>${s.total_marks}</td>
+                        <td>${s.sgpa}</td>
+                        <td><span class="badge ${s.class_result === 'Fail' ? 'badge-danger' : 'badge-success'}">${s.class_result}</span></td>
+                    </tr>
+                `).join('');
+                
+                div.innerHTML = `
+                    <table class="subjects-table">
+                        <thead><tr><th>Rank</th><th>USN</th><th>Name</th><th>Marks</th><th>SGPA</th><th>Result</th></tr></thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                    <p style="margin-top: 15px; color: var(--text-light); font-size: 0.9rem;">
+                        Showing ${json.data.length} student${json.data.length !== 1 ? 's' : ''}
+                    </p>
+                `;
+            }
         }
-    }
-};
+    };
 
-// Allow Enter key to trigger search
-document.getElementById('search-input').addEventListener('keypress', (e) => {
-    if(e.key === 'Enter') {
-        document.getElementById('load-leaderboard').click();
-    }
-});
+    // Allow Enter key to trigger search
+    document.getElementById('search-input').addEventListener('keypress', (e) => {
+        if(e.key === 'Enter') {
+            document.getElementById('load-leaderboard').click();
+        }
+    });
 
     // --- ANALYSIS ---
     document.querySelectorAll('.filter-btn').forEach(btn => {
@@ -423,14 +418,12 @@ document.getElementById('search-input').addEventListener('keypress', (e) => {
             const json = await res.json();
             
             if(json.status === 'success') {
-                // Update Stats
                 statsDiv.innerHTML = `
                     <div class="stat-card"><div class="num">${json.stats.total}</div><div class="lbl">Total</div></div>
                     <div class="stat-card"><div class="num" style="color:var(--success)">${json.stats.passed}</div><div class="lbl">Passed</div></div>
                     <div class="stat-card"><div class="num" style="color:var(--danger)">${json.stats.failed}</div><div class="lbl">Failed</div></div>
                 `;
                 
-                // Update Table
                 if(json.students.length === 0) {
                     contentDiv.innerHTML = '<div class="success-message">No students found in this category.</div>';
                 } else {

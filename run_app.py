@@ -51,7 +51,6 @@ def create_driver():
     kill_zombies()
     
     chrome_options = Options()
-    # Essential headless flags
     chrome_options.add_argument("--headless=new") 
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
@@ -62,18 +61,16 @@ def create_driver():
     chrome_options.add_argument("--window-size=1280,720")
     chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
     
-    # Memory optimization for free tier
     chrome_options.add_argument("--single-process")
     chrome_options.add_argument("--disable-software-rasterizer")
     chrome_options.add_argument("--disable-background-timer-throttling")
     chrome_options.add_argument("--disable-backgrounding-occluded-windows")
     chrome_options.add_argument("--disable-renderer-backgrounding")
     
-    # Check for Chrome binary in multiple locations (Render buildpack support)
     chrome_paths = [
         os.environ.get('GOOGLE_CHROME_BIN'),
         os.environ.get('CHROME_BIN'),
-        '/app/.chrome-for-testing/chrome-linux64/chrome',  # Render buildpack
+        '/app/.chrome-for-testing/chrome-linux64/chrome',
         '/usr/bin/google-chrome-stable',
         '/usr/bin/google-chrome',
         '/usr/bin/chromium-browser'
@@ -90,10 +87,9 @@ def create_driver():
     if not chrome_found:
         logger.warning("⚠️ Chrome binary not found in standard locations")
     
-    # Check for ChromeDriver in multiple locations
     driver_paths = [
         os.environ.get('CHROMEDRIVER_PATH'),
-        '/app/.chromedriver/bin/chromedriver',  # Render buildpack
+        '/app/.chromedriver/bin/chromedriver',
         '/usr/local/bin/chromedriver',
         '/usr/bin/chromedriver'
     ]
@@ -114,10 +110,9 @@ def create_driver():
     driver.implicitly_wait(10)
     return driver
 
-# Global Driver Management
 _driver = None
 _driver_last_used = 0
-DRIVER_TIMEOUT = 300  # Reset after 5 minutes
+DRIVER_TIMEOUT = 300
 
 def get_driver():
     global _driver, _driver_last_used
@@ -154,7 +149,6 @@ def reset_driver():
     time.sleep(1)
     logger.info("🔄 Driver Reset Complete")
 
-# --- HELPERS ---
 def get_credits_2022_cs_7th(sub_code):
     code = sub_code.upper().strip()
     if code.startswith("BCS701"): return 4  
@@ -238,7 +232,6 @@ def parse_result_page(soup, usn):
         logger.error(f"Parse error: {e}")
     return data
 
-# --- ROUTES ---
 @app.route('/')
 def home(): 
     return render_template('index.html')
@@ -337,10 +330,9 @@ def get_captcha():
         'error': 'Failed to load captcha after multiple attempts. Please try again in a moment.'
     }), 503
 
-
 @app.route('/fetch_result', methods=['POST'])
 def fetch_result():
-    usn = request.form['usn'].strip().upper()  # Already uppercase
+    usn = request.form['usn'].strip().upper()
     captcha = request.form['captcha'].strip()
     
     if not (usn.startswith('1DB21CS') or usn.startswith('1DB22CS') or usn.startswith('1DB23CS') or usn.startswith('1DB24CS')):
@@ -365,20 +357,29 @@ def fetch_result():
         captcha_field.clear()
         captcha_field.send_keys(captcha)
         
-        try: driver.find_element(By.XPATH, "//input[@type='submit']").click()
+        try: 
+            driver.find_element(By.XPATH, "//input[@type='submit']").click()
         except UnexpectedAlertPresentException:
-            alert = driver.switch_to.alert; msg = alert.text; alert.accept(); driver.refresh()
+            alert = driver.switch_to.alert
+            msg = alert.text
+            alert.accept()
+            driver.refresh()
             return jsonify({'status': 'error', 'message': f"Alert: {msg}"})
 
         time.sleep(2)
         
         try:
             WebDriverWait(driver, 5).until(EC.alert_is_present())
-            alert = driver.switch_to.alert; msg = alert.text; alert.accept(); driver.refresh()
+            alert = driver.switch_to.alert
+            msg = alert.text
+            alert.accept()
+            driver.refresh()
             return jsonify({'status': 'error', 'message': f"VTU Says: {msg}"})
-        except: pass
+        except: 
+            pass
 
-        if len(driver.window_handles) > 1: driver.switch_to.window(driver.window_handles[-1])
+        if len(driver.window_handles) > 1: 
+            driver.switch_to.window(driver.window_handles[-1])
         
         soup = BeautifulSoup(driver.page_source, 'html.parser')
         student_data = parse_result_page(soup, usn)
@@ -390,11 +391,14 @@ def fetch_result():
             rank = students_col.count_documents({'total_marks': {'$gt': my_marks}}) + 1
             student_data['rank'] = rank
 
-            if len(driver.window_handles) > 1: driver.close(); driver.switch_to.window(driver.window_handles[0])
+            if len(driver.window_handles) > 1: 
+                driver.close()
+                driver.switch_to.window(driver.window_handles[0])
             try: 
                 driver.find_element(By.NAME, "lns").clear()
                 driver.find_element(By.NAME, "captchacode").clear()
-            except: pass
+            except: 
+                pass
 
             return jsonify({'status': 'success', 'data': student_data})
         
@@ -405,23 +409,15 @@ def fetch_result():
         reset_driver()
         return jsonify({'status': 'error', 'message': "Server Error. Try again."})
 
-
-# Auto-convert USN to uppercase while typing
-document.getElementById('usn').addEventListener('input', function(e) {
-    e.target.value = e.target.value.toUpperCase();
-});
-
 @app.route('/leaderboard')
 def leaderboard():
     try:
         sort_by = request.args.get('sort', 'marks')
         order = request.args.get('order', 'desc')
-        search = request.args.get('search', '').strip().upper()  # Add search parameter
+        search = request.args.get('search', '').strip().upper()
         
-        # Build query filter
         query = {}
         if search:
-            # Search by USN or Name (case-insensitive)
             query = {
                 '$or': [
                     {'usn': {'$regex': search, '$options': 'i'}},
@@ -432,16 +428,23 @@ def leaderboard():
         data = list(students_col.find(query, {'_id': 0}))
 
         def get_sort_val(s, k):
-            try: return float(s.get(k, 0))
-            except: return 0.0
+            try: 
+                return float(s.get(k, 0))
+            except: 
+                return 0.0
 
         reverse_order = (order == 'desc')
-        if sort_by == 'sgpa': data.sort(key=lambda x: get_sort_val(x, 'sgpa'), reverse=reverse_order)
-        else: data.sort(key=lambda x: get_sort_val(x, 'total_marks'), reverse=reverse_order)
+        if sort_by == 'sgpa': 
+            data.sort(key=lambda x: get_sort_val(x, 'sgpa'), reverse=reverse_order)
+        else: 
+            data.sort(key=lambda x: get_sort_val(x, 'total_marks'), reverse=reverse_order)
 
-        for i, s in enumerate(data): s['rank'] = i + 1
+        for i, s in enumerate(data): 
+            s['rank'] = i + 1
         return jsonify({'status': 'success', 'data': data})
-    except Exception as e: return jsonify({'status': 'error', 'message': str(e)})
+    except Exception as e: 
+        return jsonify({'status': 'error', 'message': str(e)})
+
 @app.route('/get_analysis')
 def get_analysis():
     try:
@@ -451,7 +454,8 @@ def get_analysis():
         failed_count = 0
         for s in all_students:
             is_fail = s.get('class_result') == 'Fail' or any(sub.get('result') == 'F' for sub in s.get('subjects', []))
-            if is_fail: failed_count += 1
+            if is_fail: 
+                failed_count += 1
             
         stats = {
             'total': len(all_students),
@@ -476,7 +480,6 @@ def get_analysis():
         elif category == 'sc':
             response_data = [s for s in all_students if s.get('class_result') == 'Second Class']
         else:
-            # Subject specific analysis
             subject_code = category
             subj_total = 0
             subj_pass = 0

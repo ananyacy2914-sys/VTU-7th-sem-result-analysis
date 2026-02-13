@@ -361,7 +361,7 @@
         btn.textContent = "GET RESULT";
     };
 
-    // --- LEADERBOARD ---
+
     // --- LEADERBOARD ---
 document.getElementById('load-leaderboard').onclick = async () => {
     const sort = document.getElementById('sort-by').value;
@@ -455,6 +455,11 @@ document.getElementById('search-input').addEventListener('keypress', (e) => {
                 }
             }
         };
+    });
+
+    // --- AUTO-UPPERCASE USN INPUT ---
+    document.getElementById('usn').addEventListener('input', function(e) {
+        this.value = this.value.toUpperCase();
     });
 
     // Init

@@ -406,7 +406,7 @@ def fetch_result():
         return jsonify({'status': 'error', 'message': "Server Error. Try again."})
 
 
-// Auto-convert USN to uppercase while typing
+# Auto-convert USN to uppercase while typing
 document.getElementById('usn').addEventListener('input', function(e) {
     e.target.value = e.target.value.toUpperCase();
 });
